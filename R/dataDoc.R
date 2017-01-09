@@ -26,12 +26,36 @@
 ##' @format A data frame with 500 rows and 6 variables
 NULL
 
+##' Single-subject time series of facial electromyography data
+##'
+##' A dataset obtained and analyzed in Yang and Chow (2010).
+##'
+##'  Reference:
+##'  Yang, M-S. & Chow, S-M. (2010). Using state-space models with regime switching to
+##'  represent the dynamics of facial electromyography (EMG) data. Psychometrika, 74(4), 744-771
+##'
+##' The variables are as follows:
+##'
+##' \itemize{
+##'   \item id. ID of the participant (= 1 in this case, over 695 time points)
+##'   \item time Time in seconds
+##'   \item iEMG. Observed integrated facial electromyograhy data
+##'   \item SelfReport. Covariate - the individual's concurrent self-reports
+##' }
+##'
+##' @docType data
+##' @keywords datasets
+##' @name EMG
+##' @usage data(EMG)
+##' @format A data frame with 695 rows and 4 variables
+NULL
+
 ##' Simulated multi-subject time series based on a dynamic factor analysis model with nonlinear relations at the latent level
 ##' 
 ##' A dataset simulated using a discrete-time nonlinear dynamic factor analysis model
 ##' with 6 observed indicators for identifying two latent factors: individuals'
 ##' positive and negative emotions. Proposed by Chow and Zhang (2013), the model was inspired 
-##' by models of affects and it posits that the two latent factors follow a vector autoregressive
+##' by models of affect and it posits that the two latent factors follow a vector autoregressive
 ##' process of order 1 (VAR(1)) with parameters that vary between two possible regimes:
 ##' (1) an "independent" regime in which the lagged influences between positive and negative
 ##' emotions are zero; (2) a "high-activation" regime to capture instances

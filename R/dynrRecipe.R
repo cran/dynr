@@ -217,10 +217,17 @@ setMethod("$", "dynrRecipe",
 ##' printex,dynrInitial-method
 ##' printex,dynrRegimes-method
 ##' 
-##' @param object The dynr object (recipe, model, cooked, model)
-##' @param show logical. Whether or not to show the result in the console.
-##' @param AsMatrix logical. Whether to put the object in matrix form.
-##' @param ... Further named arguments, passed to internal method.
+##' @param object The dynr object (recipe, model, cooked, model).
+##' @param ParameterAs The parameter values or names to plot. The underscores in parameter names are 
+##' saved for use of subscripts.  Greek letters can be specified as corresponding LaTeX symbols without ##' backslashes (e.g., "lambda") and printed as greek letters.
+##' @param printDyn logical. Whether or not to print the dynamic model. The default is TRUE.
+##' @param printMeas logical. Whether or not to print the measurement model. The default is TRUE.
+##' @param printInit logical. Whether or not to print the initial conditions. The default is FALSE.
+##' @param printRS logical. Whether or not to print the regime-switching model. The default is FALSE.
+##' @param outFile The name of the output tex file.
+##' @param show logical indicator of whether or not to show the result in the console. 
+##' @param ... Further named arguments, passed to internal method. 
+##' \code{AsMatrix} is a logical indicator of whether to put the object in matrix form.
 ##' 
 ##' @details
 ##' This is a general way of getting a LaTeX string for recipes, 
@@ -228,21 +235,20 @@ setMethod("$", "dynrRecipe",
 ##' you specified the model or recipe you think you did before 
 ##' estimating its free parameters (cooking).  After the model 
 ##' is cooked, you can use it to get LaTeX code with the estimated 
-##' parameters in it.  The underscores in parameter names are saved 
-##' for use of subscripts.  Greek letters can be specified as 
-##' corresponding LaTeX symbols without backslashes (e.g., "lambda") 
-##' and printed as greek letters.
+##' parameters in it.
 ##' 
-##' Further arguments for the \code{dynrModel} method are with their 
-##' defaults are \code{ParameterAs}, \code{printDyn=TRUE}, 
-##' \code{printMeas=TRUE}, \code{printInit=FALSE}, \code{printRS=FALSE}, 
-##' and \code{outFile}.
-setGeneric("printex", function(object, show=TRUE, AsMatrix=TRUE, ...) { 
+##' Typical inputs to the \code{ParameterAs} argument are (1) the starting values for a model, (2) the final estimated values for a model, and (3) the parameter names.  These are accessible with (1) \code{model$xstart}, (2) \code{coef(cook)}, and (3) \code{model$param.names} or \code{names(coef(cook))}, respectively.
+##' 
+##' @seealso A way to put this in a plot with \code{\link{plotFormula}}
+setGeneric("printex", function(object, ParameterAs, 
+	printDyn=TRUE, printMeas=TRUE, printInit=FALSE, printRS=FALSE, outFile, show, ...) { 
 	return(standardGeneric("printex")) 
 })
 
 setMethod("printex", "dynrMeasurement",
-          function(object, show=TRUE, AsMatrix=TRUE){
+          function(object, ParameterAs, 
+			  printDyn=TRUE, printMeas=TRUE, printInit=FALSE, printRS=FALSE, outFile, 
+			  show=TRUE, AsMatrix=TRUE){
             if (AsMatrix){
               meas_loadings=lapply(object$values.load, .xtableMatrix, show)
               meas_int=lapply(object$values.int, .xtableMatrix, show)
@@ -269,7 +275,9 @@ setMethod("printex", "dynrMeasurement",
 )
 
 setMethod("printex", "dynrDynamicsMatrix",
-          function(object, show=TRUE, AsMatrix=TRUE){
+          function(object, ParameterAs, 
+			  printDyn=TRUE, printMeas=TRUE, printInit=FALSE, printRS=FALSE, outFile, 
+			  show=TRUE, AsMatrix=TRUE){
             if (AsMatrix){
               dyn_tran=lapply((object)$values.dyn,.xtableMatrix, show)
               dyn_int=lapply((object)$values.int,.xtableMatrix, show)
@@ -305,7 +313,9 @@ setMethod("printex", "dynrDynamicsMatrix",
 )
 
 setMethod("printex", "dynrRegimes",
-          function(object, show=TRUE, AsMatrix=TRUE){
+          function(object, ParameterAs, 
+			  printDyn=TRUE, printMeas=TRUE, printInit=FALSE, printRS=FALSE, outFile, 
+			  show=TRUE, AsMatrix=TRUE){
             lG <- ifelse(nrow(object$values) != 0, .xtableMatrix(object$values, show), "")
             return(invisible(list(regimes=lG)))
           }
@@ -313,7 +323,9 @@ setMethod("printex", "dynrRegimes",
 
 
 setMethod("printex", "dynrInitial",
-          function(object, show=TRUE, AsMatrix=TRUE){
+          function(object, ParameterAs, 
+			  printDyn=TRUE, printMeas=TRUE, printInit=FALSE, printRS=FALSE, outFile, 
+			  show=TRUE, AsMatrix=TRUE){
             lx0 <- lapply(object$values.inistate, .xtableMatrix, show)
             lP0 <- lapply(object$values.inicov, .xtableMatrix, show)
             lr0 <- .xtableMatrix(object$values.regimep, show)
@@ -323,7 +335,9 @@ setMethod("printex", "dynrInitial",
 
 
 setMethod("printex", "dynrNoise",
-          function(object, show=TRUE, AsMatrix=TRUE){
+          function(object, ParameterAs, 
+			  printDyn=TRUE, printMeas=TRUE, printInit=FALSE, printRS=FALSE, outFile, 
+			  show=TRUE, AsMatrix=TRUE){
             lQ <- lapply(object$values.latent, .xtableMatrix, show=show)
             lR <- lapply(object$values.observed, .xtableMatrix, show=show)
             return(invisible(list(dynamic.noise=lQ, measurement.noise=lR)))
@@ -331,7 +345,9 @@ setMethod("printex", "dynrNoise",
 )
 
 setMethod("printex", "dynrDynamicsFormula",
-          function(object, show=TRUE, AsMatrix=TRUE){
+          function(object, ParameterAs, 
+			  printDyn=TRUE, printMeas=TRUE, printInit=FALSE, printRS=FALSE, outFile, 
+			  show=TRUE, AsMatrix=TRUE){
             if (object$isContinuousTime){
             LHSvarPre <- "d("
             LHSvarPost <- "(t))"
@@ -582,8 +598,8 @@ setMethod("writeCcode", "dynrMeasurement",
 			ret <- paste0(ret, "\t", "}\n\n")
 		} else {
 			ret <- paste(ret, setGslMatrixElements(values.load[[1]], params.load[[1]], "Ht"), sep="\n")
-			if(hasCovariates){paste(ret, setGslMatrixElements(values.exo[[1]], params.exo[[1]], "Bmatrix"), sep="\n")}#set covariates matrix
-			if(hasIntercepts){paste(ret, setGslVectorElements(values.int[[1]], params.int[[1]], "intVector"), sep="\n")}#set intercepts vector
+			if(hasCovariates){ret <- paste(ret, setGslMatrixElements(values.exo[[1]], params.exo[[1]], "Bmatrix"), sep="\n")}#set covariates matrix
+			if(hasIntercepts){ret <- paste(ret, setGslVectorElements(values.int[[1]], params.int[[1]], "intVector"), sep="\n")}#set intercepts vector
 		}
 		ret <- paste(ret, "\n\tgsl_blas_dgemv(CblasNoTrans, 1.0, Ht, eta, 0.0, y);\n")
 		if(hasCovariates){
@@ -966,6 +982,8 @@ setMethod("writeCcode", "dynrInitial",
 		
 		nregime <- max(length(values.inistate), length(values.inicov))
 		someStatesNotZero <- sapply(values.inistate, function(x){!all(x == 0)})
+		someStatesNotZero2 <- sapply(params.inistate, function(x){!all(x == 0)})
+		someStatesNotZero <- someStatesNotZero | someStatesNotZero2
 		
 		ret <- "void function_initial_condition(double *param, gsl_vector **co_variate, gsl_vector *pr_0, gsl_vector **eta_0, gsl_matrix **error_cov_0){\n"
 		ret <- paste(ret, setGslVectorElements(values.regimep,params.regimep, "pr_0"), sep="\n")
@@ -1066,26 +1084,27 @@ setMethod("writeCcode", "dynrTrans",
 )
 
 setGeneric("createRfun", function(object, param.data, params.observed, params.latent, params.inicov,
-                                  values.observed, values.latent, values.inicov, show=TRUE) { 
+                                  values.observed, values.latent, values.inicov,
+                                  values.observed.orig, values.latent.orig, values.inicov.orig, show=TRUE) { 
   return(standardGeneric("createRfun")) 
 })
 
 setMethod("createRfun", "dynrTrans",
           function(object, param.data, params.observed, params.latent, params.inicov,
-                   values.observed, values.latent, values.inicov){
+                   values.observed, values.latent, values.inicov,
+                   values.observed.orig, values.latent.orig, values.inicov.orig){
             #inv.tfun
             inv.tf <- NULL
             tf <- NULL
-            if (length(object@formula.inv)==0){
-              #TODO If formula.inv is missing, point-wise inverse functions that are based on the uniroot function will be used to calculate starting values.
-              #inverse = function (f, lower = -100, upper = 100) {function (y) uniroot((function (x) f(x) - y), lower = lower, upper = upper)$root} 
-              #eval(parse(text="inv.tf<-function(namedvec){return(c(a=inverse(exp)(namedvec[\"a\"]),b=inverse(function(x)x^2,0.0001,100)(namedvec[\"b\"])))}")) 
-            }else{
+            f.string<-"inv.tf<-function(vec){"
+            if (length(object@formula.inv) > 0){
+              #TODO If formula.inv is missing (i.e. length == 0), point-wise inverse functions that are based on the uniroot function will be used to calculate starting values.
+              #inverse = function (f, lower = -100, upper = 100) {function (y) uniroot((function (x) f(x) - y), lower = lower, upper = upper)$root}
+              #eval(parse(text="inv.tf<-function(namedvec){return(c(a=inverse(exp)(namedvec[\"a\"]),b=inverse(function(x)x^2,0.0001,100)(namedvec[\"b\"])))}"))
               fml.str=formula2string(object@formula.inv)
               lhs=fml.str$lhs
               rhs=fml.str$rhs
               sub=sapply(lhs,function(x){paste0("vec[",param.data$param.number[param.data$param.name==x],"]")})
-              f.string<-"inv.tf<-function(vec){"
               for (j in 1:length(rhs)){
                 for (i in 1:length(lhs)){
                   rhs[j]=gsub(paste0("\\<",lhs[i],"\\>"),sub[i],rhs[j])
@@ -1093,28 +1112,28 @@ setMethod("createRfun", "dynrTrans",
                 eq=paste0(sub[j],"=",rhs[j])
                 f.string<-paste(f.string,eq,sep="\n\t")
               }
-              f.string2 <- f.string
-              #observed
-              if (sum(param.data$ldl.observed)>0){
-                f.string2 <- paste(f.string2, makeldlchar(param.data, values.observed, params.observed, reverse=TRUE),sep="\n\t")
-              }
-              #latent
-              if (sum(param.data$ldl.latent)>0){
-                f.string2 <- paste(f.string2, makeldlchar(param.data, values.latent, params.latent, reverse=TRUE),sep="\n\t")
-              }
-              #inicov
-              if (sum(param.data$ldl.inicov)>0){
-                f.string2 <- paste(f.string2, makeldlchar(param.data, values.inicov, params.inicov, reverse=TRUE),sep="\n\t")
-              }
-              f.string2<-paste0(f.string2,"\n\treturn(vec)}")
-              f.string<-paste0(f.string,"\n\treturn(vec)}")
-              
-              eval(parse(text=f.string2))
-              object@inv.tfun.full <- inv.tf
-              
-              eval(parse(text=f.string)) 
-              object@inv.tfun <- inv.tf
             }
+            f.string2 <- f.string
+            #observed
+            if (sum(param.data$ldl.observed)>0){
+            f.string2 <- paste(f.string2, makeldlchar(param.data, lapply(values.observed.orig, replaceDiagZero), params.observed, reverse=TRUE),sep="\n\t")
+            }
+            #latent
+            if (sum(param.data$ldl.latent)>0){
+            f.string2 <- paste(f.string2, makeldlchar(param.data, lapply(values.latent.orig, replaceDiagZero), params.latent, reverse=TRUE),sep="\n\t")
+            }
+            #inicov
+            if (sum(param.data$ldl.inicov)>0){
+            f.string2 <- paste(f.string2, makeldlchar(param.data, lapply(values.inicov.orig, replaceDiagZero), params.inicov, reverse=TRUE),sep="\n\t")
+            }
+            f.string2<-paste0(f.string2,"\n\treturn(vec)}")
+            f.string<-paste0(f.string,"\n\treturn(vec)}")
+            
+            eval(parse(text=f.string2))
+            object@inv.tfun.full <- inv.tf
+            
+            eval(parse(text=f.string)) 
+            object@inv.tfun <- inv.tf
             
             f.string<-"tf<-function(vec){"
               
@@ -1179,7 +1198,7 @@ makeldlchar<-function(param.data, values, params, reverse=FALSE){
         vec.noise=paste0("vec[",paste0("c(",paste(param.number,collapse=","),")"),"]")
         vec.sub <- as.vector(values[[i]])
         mat.index=sapply(param.number,function(x){min(which(params.numbers[[i]]==x))})
-        char.i=paste0(vec.noise,"=as.vector(", ifelse(reverse, 'reverseldl', 'transldl'), "(matrix(",paste0("c(",paste(vec.sub,collapse=","),")"),",ncol=",ncol(values[[i]]),")))[",
+        char.i=paste0(vec.noise,"=as.vector(", ifelse(reverse, 'reverseldl', 'transldl'), "(matrix(", paste0("c(",paste(vec.sub,collapse=","),")"),",ncol=",ncol(values[[i]]),")))[",
                       paste0("c(",paste(mat.index,collapse=","),")"),"]", ifelse(i!=length(values),"\n\t",""))
         char=paste0(char, char.i)
       }
@@ -1254,10 +1273,13 @@ dynr.ldl <- function(x){
 	return(ret)
 }
 
-reverseldl<-function(values){
+reverseldl <- function(values){
 	if(dim(values)[1]==1){
 		return(log(values))
-	}else{
+	} else if(any(is.na(values))){
+		warning("Avast ye swarthy dog! NA was passed to LDL. Unset bounds might be fine. Values might be wrong.")
+		return(values)
+	} else{
 		mat <- dynr.ldl(values)
 		diag(mat) <- log(diag(mat))
 		return(mat)

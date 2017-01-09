@@ -86,7 +86,8 @@ vecRegime <- function(object){
   a <- diag(matrix(outer(matrix(values[colIndex2],ncol=numCovariates+1), 
            matrix(c(1,object$covariates),ncol=1),
            FUN=paste,sep="*"),ncol=numCovariates+1))
-  namesLO = paste0("&\\frac{Pr(p",j,q,")}{1-Pr(p",j,q,")}")
+  #namesLO = paste0("&\\frac{Pr(p",j,q,")}{1-Pr(p",j,q,")}")
+  namesLO = paste0("&Log Odds(p",j,q,")")
   a <- paste0(namesLO," = ", 
               implode(gsub("*1","",a,fixed=TRUE),sep=" + "))
   Prlist <- paste0(Prlist , a, "\\\\")
@@ -431,12 +432,14 @@ dynr.model <- function(dynamics, measurement, noise, initial, data, ..., outfile
   if(any(sapply(inputs, class) %in% 'dynrTrans')){
     inputs$transform<-createRfun(inputs$transform, param.data, 
                                  params.observed=inputs$noise$params.observed, params.latent=inputs$noise$params.latent, params.inicov=inputs$initial$params.inicov,
-                                 values.observed=inputs$noise$values.observed.inv.ldl, values.latent=inputs$noise$values.latent.inv.ldl, values.inicov=inputs$initial$values.inicov.inv.ldl)
+                                 values.observed=inputs$noise$values.observed.inv.ldl, values.latent=inputs$noise$values.latent.inv.ldl, values.inicov=inputs$initial$values.inicov.inv.ldl,
+                                 values.observed.orig=inputs$noise$values.observed, values.latent.orig=inputs$noise$values.latent, values.inicov.orig=inputs$initial$values.inicov)
     #at this step, the paramnum slot of transform gets populated, which is needed for paramName2Number
   }else{
     inputs$transform <- createRfun(prep.tfun(), param.data, 
                                  params.observed=inputs$noise$params.observed, params.latent=inputs$noise$params.latent, params.inicov=inputs$initial$params.inicov,
-                                 values.observed=inputs$noise$values.observed.inv.ldl, values.latent=inputs$noise$values.latent.inv.ldl, values.inicov=inputs$initial$values.inicov.inv.ldl)
+                                 values.observed=inputs$noise$values.observed.inv.ldl, values.latent=inputs$noise$values.latent.inv.ldl, values.inicov=inputs$initial$values.inicov.inv.ldl,
+                                 values.observed.orig=inputs$noise$values.observed, values.latent.orig=inputs$noise$values.latent, values.inicov.orig=inputs$initial$values.inicov)
   }
   # paramName2Number on each recipe (this changes are the params* matrices to contain parameter numbers instead of names
   inputs <- sapply(inputs, paramName2Number, names=param.data$param.name)
@@ -456,8 +459,8 @@ dynr.model <- function(dynamics, measurement, noise, initial, data, ..., outfile
   obj.dynrModel@dim_latent_var <- dim(inputs$measurement$values.load[[1]])[2] #numbber of columns of the factor loadings
   
   obj.dynrModel@xstart <- param.data$param.value
-  obj.dynrModel@ub <- rep(9999,length(obj.dynrModel@xstart))
-  obj.dynrModel@lb <- rep(9999,length(obj.dynrModel@xstart))
+  obj.dynrModel@ub <- as.double(rep(NA, length(obj.dynrModel@xstart)))
+  obj.dynrModel@lb <- as.double(rep(NA, length(obj.dynrModel@xstart)))
   if(any(sapply(inputs, class) %in% 'dynrRegimes')){
     obj.dynrModel@num_regime<-dim(inputs$regimes$values)[1]
   }

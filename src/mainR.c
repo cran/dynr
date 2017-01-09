@@ -60,16 +60,18 @@ SEXP getListElement(SEXP list, const char *str)
  * The gateway function for the R interface
  * @param model_list is a list in R of all model specifications.
  * @param data_list is a list in R of the outputs prepared by dynr.data()
+ * @param weight_flag_in a flag for weighting the neg loglike function by individual data length
  * @param debug_flag_in a flag for returning a longer list of outputs for debugging purposes
  * @param outall_flag_in a flag for returning all possible outputs
  * @param verbose_flag_in a flag of whether or not to print debugging statements before and during estimation.
  */
-SEXP main_R(SEXP model_list, SEXP data_list, SEXP debug_flag_in, SEXP outall_flag_in, SEXP verbose_flag_in)
+SEXP main_R(SEXP model_list, SEXP data_list, SEXP weight_flag_in, SEXP debug_flag_in, SEXP outall_flag_in, SEXP verbose_flag_in)
 {
     size_t index,index_col,index_row;
     bool debug_flag=*LOGICAL(PROTECT(debug_flag_in));
 	bool outall_flag=*LOGICAL(PROTECT(outall_flag_in));
 	bool verbose_flag=*LOGICAL(PROTECT(verbose_flag_in));
+	bool weight_flag=*LOGICAL(PROTECT(weight_flag_in));
     /** =======================Interface : Start to Set up the data and the model========================= **/
 
     static Data_and_Model data_model;
@@ -155,7 +157,7 @@ SEXP main_R(SEXP model_list, SEXP data_list, SEXP debug_flag_in, SEXP outall_fla
     	data_model.pc.func_jacob_dynam = R_ExternalPtrAddr(f_jacob_dynamic_sexp);
     }
 	
-    data_model.pc.isnegloglikeweightedbyT=false;
+    data_model.pc.isnegloglikeweightedbyT=weight_flag;
     data_model.pc.second_order=false;
 
     /*specify the start position for each subject: User always need to provide a txt file called tStart.txt*/
@@ -277,8 +279,8 @@ SEXP main_R(SEXP model_list, SEXP data_list, SEXP debug_flag_in, SEXP outall_fla
     int h;
     /*DYNRPRINT(verbose_flag, "ub value h %f\n", ub[1]);*/
     for (h=0; h < data_model.pc.num_func_param; h++){
-      if (ub[h]==9999){ub[h]=HUGE_VAL;}
-      if (lb[h]==9999){lb[h]=-HUGE_VAL;}
+      if (ub[h]==9999 || !R_FINITE(ub[h])){ub[h]=HUGE_VAL;}
+      if (lb[h]==9999 || !R_FINITE(lb[h])){lb[h]=-HUGE_VAL;}
     }
     /*DYNRPRINT(verbose_flag, "Arrays allocated.\n");*/
     /*double ub[6] = {4, 4, 4, 4, 4, 4};
@@ -527,6 +529,17 @@ SEXP main_R(SEXP model_list, SEXP data_list, SEXP debug_flag_in, SEXP outall_fla
         double neg_log_like=EKimFilter(data_model.y, data_model.co_variate, data_model.y_time, &(data_model.pc), &pi, &par,
 	    eta_regime_j_t,error_cov_regime_j_t,eta_regime_jk_pred,error_cov_regime_jk_pred,eta_regime_jk_t_plus_1,error_cov_regime_jk_t_plus_1,
 	    pr_t, pr_t_given_t_minus_1,innov_v,inv_residual_cov);
+
+	    if ( status< 0) {
+			MYPRINT("nlopt failed!\n");
+	    }else{
+			MYPRINT("Starting Hessian calculation ...\n");
+		    data_model.pc.isnegloglikeweightedbyT=false;
+			hessianRichardson(fittedpar, &data_model, function_neg_log_like, neg_log_like, Hessian_mat); /*information matrix*/
+		    data_model.pc.isnegloglikeweightedbyT=weight_flag;
+			MYPRINT("Finished Hessian calculation.\n");
+			/* mathfunction_inv_matrix(Hessian_mat, inv_Hessian_mat); */ /*variance*/
+		}
 
 
 	    EKimSmoother(data_model.y_time, data_model.co_variate, &data_model.pc, &par, pr_t_given_t_minus_1, pr_t, eta_regime_jk_pred,error_cov_regime_jk_pred,eta_regime_j_t,error_cov_regime_j_t,
@@ -948,20 +961,20 @@ SEXP main_R(SEXP model_list, SEXP data_list, SEXP debug_flag_in, SEXP outall_fla
 	DYNRPRINT(verbose_flag, "Freeing objects before return ... \n");
     if (data_model.pc.isContinuousTime){
 		if (outall_flag){
-			UNPROTECT(89-17);
+			UNPROTECT(90-17);
 		}else if (debug_flag){
-			UNPROTECT(89-17-19);
+			UNPROTECT(90-17-19);
 		}else{
-			UNPROTECT(89-17-19-8);
+			UNPROTECT(90-17-19-8);
 		}
 
 	}else{
 		if (outall_flag){
-			UNPROTECT(89-17-1);
+			UNPROTECT(90-17-1);
 		}else if (debug_flag){
-			UNPROTECT(89-17-19-1);
+			UNPROTECT(90-17-19-1);
 		}else{
-			UNPROTECT(89-17-19-8-1);
+			UNPROTECT(90-17-19-8-1);
 		}
 	}/*unprotect objects: find all PROTECT in the script, then -2*2Cancel-6ENDUNP-4outputflag-2/3CTflag -1 comment=-17*/
 

@@ -269,7 +269,7 @@ double brekfis(gsl_vector ** y, gsl_vector **co_variate, size_t total_time, doub
                     
                     
                    /*p=exp(-neg_log_p)*tran_prob_jk;*/
-                    p=isfinite(exp(-neg_log_p))&&exp(-neg_log_p)>1e-4?exp(-neg_log_p):1e-4;
+                   p=isfinite(exp(-neg_log_p))&&exp(-neg_log_p)>1e-4?exp(-neg_log_p):1e-4;
                     
                    /*MYPRINT("likelihood f(y_it|S_it=k,S_i,t-1=j,Y_i,t-1):\n");
                    MYPRINT("before exponential %lf\n",neg_log_p);
@@ -809,7 +809,7 @@ double EKimFilter(gsl_vector ** y, gsl_vector **co_variate, double *y_time, cons
                    /** Step 2.2: compute log value of function f(.), i.e., prediction error decomposition function **/
                    neg_log_p=mathfunction_negloglike_multivariate_normal_invcov(innov_v[t][regime_j][regime_k], inv_residual_cov[t][regime_j][regime_k], y_non_miss, innov_determinant);
                    /*p=exp(-neg_log_p)*tran_prob_jk;*/
-                    p=exp(-neg_log_p)>1e-4?exp(-neg_log_p):1e-4;
+                   p=isfinite(exp(-neg_log_p))&&exp(-neg_log_p)>1e-4?exp(-neg_log_p):1e-4;
 
                    /*MYPRINT("likelihood f(y_it|S_it=k,S_i,t-1=j,Y_i,t-1):\n");
                    MYPRINT("oringinal %lf\n",exp(-neg_log_p));
@@ -817,7 +817,7 @@ double EKimFilter(gsl_vector ** y, gsl_vector **co_variate, double *y_time, cons
 
                    /** compare the p with the (0.0001) and get the bigger one. We do not like probability that is too small. :)**/
 
-                   gsl_matrix_set(like_jk, regime_j, regime_k,p*tran_prob_jk);
+                   gsl_matrix_set(like_jk, regime_j, regime_k, p*tran_prob_jk);
 			   	   
 				   
                 }/*end of to regime k*/
@@ -825,7 +825,6 @@ double EKimFilter(gsl_vector ** y, gsl_vector **co_variate, double *y_time, cons
 
 
 			
-				
             /** Step 2.3: update transit probability Pr(S_{t-1} = j,S_{t} = k|Y_t) given Pr(S_{t-1} = j,S_{t} = k|Y_{t-1})**/
             log_like+=log(mathfunction_matrix_normalize(like_jk));/*like_jk scaled, Pr(S_{t-1} = j,S_{t} = k|Y_{t}, like=sum*/
 
@@ -1052,11 +1051,14 @@ void EKimSmoother(double *y_time, gsl_vector **co_variate, const ParamConfig *co
                     MYPRINT("\n");*/
 
 
-
+					/*Cf. Chow & Zhang Equation A.9*/
+					/*TODO Check for division zero (near) zero*/
                     /*Pr[S_i,t+1=regime_k, S_it=regime_j|Y_iT]*/
                     gsl_vector_set(transprob_T[t][regime_j],regime_k, gsl_vector_get(p_next_regime_T,regime_k)*gsl_vector_get(pr_t[t],regime_j)*gsl_matrix_get(param->regime_switch_mat,regime_j,regime_k)/gsl_vector_get(pr_t_given_t_minus_1[t+1],regime_k));
                       /*Pr[S_it=j|Y_iT] sum over k*/
+					/*Cf. Denominator of A.9*/
                     sum_overk+=gsl_vector_get(transprob_T[t][regime_j],regime_k);
+					/*TODO print this sum_overk , i.e. check denominator not to near zero*/
 
 
                     /*Jacobian matrix of the dynamic function*/
@@ -1075,10 +1077,12 @@ void EKimSmoother(double *y_time, gsl_vector **co_variate, const ParamConfig *co
                     /*MYPRINT("sbj %lu t-1 %lu \n",sbj,t);
                     print_matrix(error_cov_regime_jk_pred[t+1][regime_j][regime_k]);
                     MYPRINT("\n");*/
+					/*TODO possible re-write this function to take pseudo-inverse as needed*/
                     mathfunction_inv_matrix(error_cov_regime_jk_pred[t+1][regime_j][regime_k], inv_P_jk_pred);/*obtain the inverse matrix*/
                     gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, pb, inv_P_jk_pred, 0.0, P_tilde_regime_jk); /* compute P*B*Pjk^{-1}*/
                     /*print_matrix(P_tilde_regime_jk);
                     MYPRINT("\n");*/
+					/*TODO print inv_P_jk_pred to check invertibility*/
 
                     /*eta_regime_jk_T*/
                     /* compute eta_regime_j_t[t+1][regime_k] - eta_regime_jk_pred[t+1][regime_j][regime_k]*/

@@ -146,7 +146,7 @@ setMethod("plot", "dynrCook",
       ggplot2::ggtitle('Counts by most probable regime') +
       ggplot2::theme(axis.title = ggplot2::element_text(size=14),
                      axis.text=ggplot2::element_text(size=12),
-                     plot.title = ggplot2::element_text(size = 12, colour = "black", face = "bold"))
+                     plot.title = ggplot2::element_text(size = 12, colour = "black", face = "bold", hjust = 0.5, vjust=0.01))
   }
   
   #The third panel plots the model formulae
@@ -167,6 +167,40 @@ plotdf <- function(vec_tex){
   return(dataframe)
 }
 
+##' Plot of the estimated frequencies of the regimes across all individuals and time points
+##' based on their smoothed regime probabilities
+##' 
+##' @param res The dynr object returned by dynr.cook().
+##' @param dynrModel The model object to plot.
+##' @param names.regime (optional) Names of the regimes (must match the length of the number of regimes)
+##' @param title (optional) Title of the plot.
+##' @param xlab (optional) Label of the x-axis.
+##' @param ylab (optional) Label of the y-axis.
+##' @param textsize (default = 12) Text size for the axis labels and title (= textsize + 2).
+##' @param print (default = TRUE) A flag for whether the plot should be printed.
+dynr.plotFreq <- function(res, dynrModel, names.regime, title, xlab, ylab, textsize=12,print=TRUE) {
+  if(missing(names.regime)){names.regime<-paste0("Regime",1:dynrModel@num_regime)}
+  if(missing(title)){title<-'Counts by most probable regime'}
+  if(missing(xlab)){xlab<-'Regime'}
+  if(missing(ylab)){ylab<-'Counts'}
+
+    regime <- NULL
+    highProbR <- data.frame(regime=factor(apply(res@pr_t_given_T,2,which.max),
+                                   levels=1:dynrModel@num_regime,
+                                   labels=names.regime))
+    p2 <- ggplot2::ggplot(data = highProbR, ggplot2::aes(factor(regime))) +
+      ggplot2::geom_bar() +
+      ggplot2::scale_fill_brewer(palette = 3) +
+      ggplot2::xlab(xlab) + ggplot2::ylab(ylab) + ggplot2::labs(fill = '') + 
+      ggplot2::ggtitle(title) +
+      ggplot2::theme(axis.title = ggplot2::element_text(size=textsize+2),
+                     axis.text=ggplot2::element_text(size=textsize),
+                     plot.title = ggplot2::element_text(size = textsize, colour = "black", face = "bold", hjust = 0.5, vjust=0.01))
+    if (print) print(p2)
+    return(p2)
+  }
+  
+
 ##' Plot the formula from a model
 ##' 
 ##' @param dynrModel The model object to plot.
@@ -178,7 +212,7 @@ plotdf <- function(vec_tex){
 ##' @param textsize The text size use in the plot.
 ##' 
 ##' @details
-##' This function typesets a set of formulas that represent the model.
+##' This function typesets a set of formulas that represent the model.  Typical inputs to the \code{ParameterAs} argument are (1) the starting values for a model, (2) the final estimated values for a model, and (3) the parameter names.  These are accessible with (1) \code{model$xstart}, (2) \code{coef(cook)}, and (3) \code{model$param.names} or \code{names(coef(cook))}, respectively.
 plotFormula <- function(dynrModel, ParameterAs, printDyn=TRUE, printMeas=TRUE, textsize=4){
   
   dynrModel <- PopBackModel(dynrModel, LaTeXnames(ParameterAs, latex = FALSE))
@@ -286,7 +320,7 @@ dynr.ggplot <- function(res, dynrModel, style = 1,
                         colorPalette="Set2", 
                         fillPalette="Set2", 
                         mancolorPalette, manfillPalette, ...){
-
+ 
   data.dynr=dynrModel@data
   dim_latent_var=dim(res@eta_smooth_final)[1]
   num_regime=dim(res@pr_t_given_T)[1]
@@ -298,6 +332,8 @@ dynr.ggplot <- function(res, dynrModel, style = 1,
   if(missing(shape.values)){
     if (style==1) shape.values=states#48+states
     if (style==2) shape.values=c(rep(32,length(observed)),observed)#pre-obs
+  }else{
+  	if (style==2) shape.values=c(rep(32,length(shape.values)), shape.values)#pre-obs
   }
   if (style==1) line.values=rep(1,length(states))
   if (style==2) line.values=rep(c(1,0),each=length(observed))#pre-obs
@@ -361,16 +397,17 @@ dynr.ggplot <- function(res, dynrModel, style = 1,
                                 id.vars=names.id.vars,
                                 measure.vars=names.measure.vars,
                                 value.name="value")
+	data_long$variable<-factor(data_long$variable, levels=sort(names.measure.vars)) 
     value <- NULL
     variable <- NULL
-    partial.plot<-ggplot2::ggplot(data_long, ggplot2::aes(x=time, y=value, colour = variable, shape = variable, linetype = variable)) + 
+    partial.plot<-ggplot2::ggplot(data_long, ggplot2::aes(x=time, y=value, colour = variable, shape = variable, linetype = variable)) +
       ggplot2::geom_line(data=data_long[data_long$variable%in%lines.var,], size=1) +
       ggplot2::geom_point(data=data_long[data_long$variable%in%points.var,], size=4) +
       ggplot2::scale_linetype_manual(labels=sort(names.measure.vars), values=line.values[order(names.measure.vars)])+
       ggplot2::scale_shape_manual(labels=sort(names.measure.vars), values=shape.values[order(names.measure.vars)])+
       ggplot2::facet_wrap(~id)+
       ggplot2::labs(title = title, y=ylab, ggtitle="")+
-      ggplot2::theme(plot.title=ggplot2::element_text(lineheight=.8, face="bold"), legend.position="bottom",legend.text=ggplot2::element_text(lineheight=0.8, face="bold"),...)
+      ggplot2::theme(plot.title=ggplot2::element_text(lineheight=.8, face="bold", hjust = 0.5, vjust=0.01), legend.position="bottom",legend.text=ggplot2::element_text(lineheight=0.8, face="bold"),...)
     
   }else{#more than two regimes
     if(missing(names.regime)){names.regime = 1:num_regime}
@@ -448,19 +485,20 @@ dynr.ggplot <- function(res, dynrModel, style = 1,
                                id.vars=names.id.vars,
                                measure.vars=names.measure.vars,
                                value.name="value")
+    data_long$variable<-factor(data_long$variable, levels=sort(names.measure.vars)) 
     #data_long$statenumber<-as.factor(sub("state","",data_long$variable))
     endtime <- NULL
     regime <- NULL
     partial.plot<-ggplot2::ggplot(data_long,ggplot2::aes(x=time, y=value, group=variable)) +
       ggplot2::geom_rect(ggplot2::aes(xmin=time, xmax=endtime, ymin=-Inf, ymax=Inf, fill=regime), alpha=.15) +
-      ggplot2::geom_line(data=data_long[data_long$variable%in%lines.var,], size=1, ggplot2::aes(color=variable, shape=variable, linetype=variable)) +
-      ggplot2::geom_point(data=data_long[data_long$variable%in%points.var,], size=3, ggplot2::aes(color=variable, shape=variable, linetype=variable)) +
+      ggplot2::geom_line(data=data_long[data_long$variable%in%lines.var,], size=1, ggplot2::aes(color=variable, linetype=variable)) +
+      ggplot2::geom_point(data=data_long[data_long$variable%in%points.var,], size=3, ggplot2::aes(color=variable, shape=variable)) +
       ggplot2::scale_linetype_manual(labels=sort(names.measure.vars), values=line.values[order(names.measure.vars)])+
       ggplot2::scale_shape_manual(labels=sort(names.measure.vars), values=shape.values[order(names.measure.vars)])+
       #geom_text(size=1, ggplot2::aes(label=statenumber,color=variable))+
       ggplot2::facet_wrap(~id)+ 
       ggplot2::labs(title = title,y=ylab,ggtitle="")+
-      ggplot2::theme(plot.title=ggplot2::element_text(lineheight=.8, face="bold"), legend.position="bottom",legend.text=ggplot2::element_text(lineheight=0.8, face="bold"),...)
+      ggplot2::theme(plot.title=ggplot2::element_text(lineheight=.8, face="bold", hjust = 0.5, vjust=0.01), legend.position="bottom",legend.text=ggplot2::element_text(lineheight=0.8, face="bold"),...)
     
   }
   
@@ -468,7 +506,7 @@ dynr.ggplot <- function(res, dynrModel, style = 1,
     bw.plot<-partial.plot+
       ggplot2::scale_fill_grey(start = 0.1, end = 0.9)+
       ggplot2::scale_color_grey(labels=sort(names.measure.vars), start = 0.2, end = 0.7)
-    print(bw.plot)
+    return(bw.plot)
   }else{
     default.plot<-partial.plot+
       ggplot2::scale_colour_brewer(labels=sort(names.measure.vars), palette=colorPalette)+

@@ -15,11 +15,12 @@
 ##' @details
 ##' This is an internal class structure.  You should not use it directly.
 ##' Use \code{\link{dynr.cook}} instead.
-setClass(Class =  "dynrCook",
+setClass(Class =  "dynrCook", 
          representation = representation(
            fitted.parameters =  "numeric", #Can return
            transformed.parameters =  "numeric", #
            standard.errors =  "numeric",
+           bad.standard.errors = "logical",
            hessian =  "matrix",
            transformed.inv.hessian =  "matrix",
            conf.intervals = "matrix",
@@ -40,6 +41,7 @@ setMethod("initialize", "dynrCook",
             .Object@fitted.parameters <- x$fitted.parameters
             .Object@transformed.parameters <- x$transformed.parameters
             .Object@standard.errors <- x$standard.errors
+            .Object@bad.standard.errors <- x$bad.standard.errors
             .Object@hessian <- x$hessian.matrix
             .Object@transformed.inv.hessian <- x$transformed.inv.hessian
             .Object@conf.intervals <- x$conf.intervals
@@ -57,6 +59,7 @@ setClass(Class =  "dynrDebug",
            fitted.parameters =  "numeric", #Can return
            transformed.parameters =  "numeric", #
            standard.errors =  "numeric",
+           bad.standard.errors = "logical",
            hessian =  "matrix",
            transformed.inv.hessian =  "matrix",
            conf.intervals = "matrix",
@@ -82,6 +85,7 @@ setMethod("initialize", "dynrDebug",
             .Object@fitted.parameters <- x$fitted.parameters
             .Object@transformed.parameters <- x$transformed.parameters
             .Object@standard.errors <- x$standard.errors
+            .Object@bad.standard.errors <- x$bad.standard.errors
             .Object@hessian <- x$hessian.matrix
             .Object@transformed.inv.hessian <- x$transformed.inv.hessian
             .Object@conf.intervals <- x$conf.intervals
@@ -104,6 +108,7 @@ setClass(Class =  "dynrOutall",
            fitted.parameters =  "numeric", #Can return
            transformed.parameters =  "numeric", #
            standard.errors =  "numeric",
+           bad.standard.errors = "logical",
            hessian =  "matrix",
            transformed.inv.hessian =  "matrix",
            conf.intervals = "matrix",
@@ -139,6 +144,7 @@ setMethod("initialize", "dynrOutall",
             .Object@fitted.parameters <- x$fitted.parameters
             .Object@transformed.parameters <- x$transformed.parameters
             .Object@standard.errors <- x$standard.errors
+            .Object@bad.standard.errors <- x$bad.standard.errors
             .Object@hessian <- x$hessian.matrix
             .Object@transformed.inv.hessian <- x$transformed.inv.hessian
             .Object@conf.intervals <- x$conf.intervals
@@ -175,10 +181,11 @@ summaryResults<-function(object){
              d <- data.frame(names=object@param.names, transformed.parameters=object@transformed.parameters, standard.errors=object@standard.errors)
              d$t_value<-ifelse(d$standard.errors==0, NA, d$transformed.parameters/d$standard.errors)
              d <-cbind(d,object@conf.intervals)
+             d$bad <- factor(c("", "!")[object@bad.standard.errors + 1])
              neg2LL = -2*logLik(object)
              AIC = AIC(object)
              BIC = BIC(object)
-             colnames(d) = c("names","parameters","s.e.","t-value","ci.lower","ci.upper")
+             colnames(d) = c("names", "parameters", "s.e.", "t-value", "ci.lower", "ci.upper", "")
              print(d)
              cat(paste0("\n-2 log-likelihood value at convergence = ", sprintf("%.02f", round(neg2LL,2))))
              cat(paste0("\nAIC = ", sprintf("%.02f", round(AIC,2))))
@@ -192,6 +199,10 @@ summaryResults<-function(object){
 ##' 
 ##' @details
 ##' The summary gives information on the free parameters estimated: names, parameter values, numerical Hessian-based standard errors, t-values (values divided by standard errors), and standard-error based confidence intervals.  Additionally, the likelihood, AIC, and BIC are provided.
+##' 
+##' Note that an exclamation point (!) in the final column of the summary table indicates that
+##' the standard error and confidence interval for this parameter may not be trustworthy. The corresponding
+##' element of the (transformed, inverse) Hessian was negative and an absolute value was taken to make it positive.
 setMethod( f = "summary",  signature = "dynrCook" ,
            definition = summaryResults)
 
@@ -282,23 +293,22 @@ vcov.dynrCook <- function(object, ...){
 
 ##' Cook a dynr model to estimate its free parameters
 ##' 
-##' @param dynrModel a dynr model compiled using dynr.model, consisting of recipes for submodels, starting values, parameter names, and C code for each submodel
-##' @param conf.level a cumulative proportion indicating the level of desired confidence intervals for the final parameter estimates (default is .95)
-##' @param infile (not required for models specified through the recipe functions) the name of a file that has the C codes for all dynr submodels for those interested in specifying a model directly in C
-##' @param verbose a flag (TRUE/FALSE) indicating whether more detailed intermediate output during the estimation process should be printed
-##' @param debug_flag a flag (TRUE/FALSE) indicating whether users want additional dynr output that can be used for diagnostic purposes 
-##' 
-##' @details
-##' TO BE COMPLETED: 
-##' for "cooking dinner" -- namely, to start the estimation process
-##' a description of things output when debug_flag = FALSE
-##' a description of things output when debug_flag = TRUE
-##' 
-##' @seealso \code{\link{dynr.cook}}
+##' @param dynrModel a dynr model compiled using dynr.model, consisting of recipes for submodels, 
+##' starting values, parameter names, and C code for each submodel
+##' @param conf.level a cumulative proportion indicating the level of desired confidence intervals for
+##' the final parameter estimates (default is .95)
+##' @param infile (not required for models specified through the recipe functions) the name of a file 
+##' that has the C codes for all dynr submodels for those interested in specifying a model directly in C
+##' @param verbose a flag (TRUE/FALSE) indicating whether more detailed intermediate output during the 
+##' estimation process should be printed
+##' @param weight_flag a flag (TRUE/FALSE) indicating whether the negative log likelihood function should 
+##' be weighted by the length of the time series for each individual
+##' @param debug_flag a flag (TRUE/FALSE) indicating whether users want additional dynr output that can 
+##' be used for diagnostic purposes 
 ##' 
 ##' @examples
 ##' #fitted.model <- dynr.cook(model)
-dynr.cook <- function(dynrModel, conf.level=.95, infile, verbose=TRUE, debug_flag=FALSE) {
+dynr.cook <- function(dynrModel, conf.level=.95, infile, verbose=TRUE, weight_flag=FALSE, debug_flag=FALSE) {
 	outall_flag=FALSE#always set to FALSE except when a developer wants all the intermediate products from the C estimation algorithms.
 	frontendStart <- Sys.time()
 	transformation=dynrModel@transform@tfun
@@ -330,29 +340,44 @@ dynr.cook <- function(dynrModel, conf.level=.95, infile, verbose=TRUE, debug_fla
 	}
 	gc()
 	backendStart <- Sys.time()
-	output <- .Call(.Backend, model, data, debug_flag, outall_flag, verbose, PACKAGE = "dynr")
+	output <- .Call(.Backend, model, data, weight_flag, debug_flag, outall_flag, verbose, PACKAGE = "dynr")
 	backendStop <- Sys.time()
 	#gc()#garbage collection
 	cat('Original exit flag: ', output$exitflag, '\n')
-	output$exitflag <- output$exitflag + ifelse(output$exitflag<0, 6, 0) + ifelse(output$exitflag>0, 5, 0)
+	# Check to make sure likelihood is not NaN.
+	output$exitflag <- ifelse(is.na(output$neg.log.likelihood), -6, output$exitflag)
+	# Use lookup table for exit flags
 	cat('Modified exit flag: ', output$exitflag, '\n')
-	cat(.ExitFlags[output$exitflag], '\n')
+	cat(.ExitFlags[as.character(output$exitflag)], '\n')
 	
 	diagH = diag(output$hessian.matrix)
 	diagH[diagH==0] = 10e-14
 	diag(output$hessian.matrix) = diagH
 	cat('Original fitted parameters: ', output$fitted.parameters, '\n', fill=TRUE)
 	cat('Transformed fitted parameters: ', transformation(output$fitted.parameters), '\n', fill=TRUE)
-	status = ifelse(any(!is.finite(output$hessian.matrix)) || !is.positive.definite(output$hessian.matrix), 0, 1)
-	if (output$exitflag > 5 && status==1){
-		output2 <- endProcessing(output, transformation, conf.level)
-	}else{		
-	  	output2 <- endProcessing2(output, transformation)
-	  	cat('Hessian Matrix:',  '\n')
-		print(output$hessian.matrix)
+	# if any of the Hessian elements are non-finite or the overall Hessian is non-positive definite
+	#  set status = 0, otherwise it is 1
+	nonfiniteH <- any(!is.finite(output$hessian.matrix))
+	nonpdH <- !is.positive.definite2(output$hessian.matrix)
+	status = ifelse(nonfiniteH || nonpdH, 0, 1)
+	output2 <- endProcessing(output, transformation, conf.level)
+	if (output$exitflag > 0 && status==1 &&length(dynrModel$param.names[output2$bad.standard.errors])==0){
+		cat('Successful trial\n')
+	}else{
+		#cat('Check the hessian matrix from your dynr output. \n')
+		#cat('Hessian Matrix:',  '\n')
+		#print(output$hessian.matrix)
 		cat('\n')
-		#Print a message. Hessian matrix at convergence contains non-finite values or is
-		#non-positive definite. ?
+		if(nonfiniteH){
+			msg <- paste("Non-finite values in the Hessian matrix.")
+			warning(msg)
+		} else if(nonpdH || length(dynrModel$param.names[output2$bad.standard.errors]) > 0){
+			msg <- "Hessian is not positive definite. The standard errors were computed using the nearest positive definite approximation to the Hessian matrix."
+  if (length(dynrModel$param.names[output2$bad.standard.errors]) > 0){
+    msg <- paste(c(msg,"These parameters may have untrustworthy standard errors: ", paste(dynrModel$param.names[output2$bad.standard.errors],collapse=", "),"."),collapse="")  
+    }
+			warning(msg)
+		}
 	}
 	names(output2$transformed.parameters) <- dynrModel$param.names
 	if (outall_flag){
@@ -388,19 +413,48 @@ endProcessing2 <- function(x, transformation){
   
   nParam <- length(x$fitted.parameters)
   x$standard.errors <- rep(999,nParam)
-  x$transformed.inv.hessian <-matrix(999, nrow=nParam,ncol=nParam)
-  x$conf.intervals <-matrix(999, nrow=nParam,ncol=2, dimnames=list(NULL, c('ci.lower', 'ci.upper')))
+  x$transformed.inv.hessian <- matrix(999, nrow=nParam,ncol=nParam)
+  x$conf.intervals <- matrix(999, nrow=nParam,ncol=2, dimnames=list(NULL, c('ci.lower', 'ci.upper')))
   return(x)
 }
 
+
+  ##Tried but not working broadly enough for non-positive definite hessians
+  ##Calculating a pseudovariance matrix = V'V,
+  ##where V = GCHOL(H-), GCHOL(.) is the generalized Cholesky, and H- is
+  ##the generalized inverse of the Hessian
+  ##See the pseudo-inverse Hessian described in the following chapter, without importance sampling:
+  ##Gill, J., et al. (2003). Numerical Issues Involved in Inverting Hessian Matrices. Numerical Issues in Statistical Computing for the Social Scientist, John Wiley & Sons, Inc.: 143-176.
+  #Hinv <- MASS::ginv(x) #Generalized inverse of x
+  #V <- sechol(Hinv)   #V <- ifelse(class(sechol(Hinv)) == "try-error", TRUE, FALSE)
+  #V1 <- t(V) %*% V   
+
+#J%*%(ginv(x$hessian))t(J) and flag the negative diagonal elements
+
 endProcessing <- function(x, transformation, conf.level){
-  #Sukruth to create another version of:
-  #Do line 205, 207
 	cat('Doing end processing\n')
 	confx <- qnorm(1-(1-conf.level)/2)
-	#Analytic Jacobian
-	V1 = solve(x$hessian.matrix)
+	if (is.positive.definite(x$hessian.matrix)){
+	  V1 <- solve(x$hessian.matrix)
+	}
+	else{
+	  PDhessian <- (Matrix::nearPD(x$hessian.matrix, conv.norm.type = "F"))$mat
+	  V1 <- solve(PDhessian)
+	}
+	
+	#Identifies too many problematic parameters
+	#evector <- eigen(x$hessian.matrix)$vectors
+	#bad.values <- eigen(x$hessian.matrix)$values < 0
+	#bad.evec <-  evector[,bad.values]
+	#bad.evec <- apply(bad.evec,2,function(x){abs(x/sum(x))}) #normalize within column
+	#bad.evecj <- apply(bad.evec,2,function(x){x > .5})#For each column find the substantial row (param) entries  
+	#bad.SE <- apply(bad.evecj,1,function(x){ifelse(length(x[x=="TRUE"]) > 0, TRUE,FALSE)}) #Flag parameters that have been identified as problematic at least once
+	
+	#Numerical Jacobian
 	J <- numDeriv::jacobian(func=transformation, x=x$fitted.parameters)
+	iHess0 <- J%*%(MASS::ginv(x$hessian))%*%t(J)
+	bad.SE <- diag(iHess0) < 0
+	
 	iHess <- J %*% V1%*%t(J)
 	tSE <- sqrt(diag(iHess))
 	tParam <- transformation(x$fitted.parameters) #Can do
@@ -409,6 +463,7 @@ endProcessing <- function(x, transformation, conf.level){
 	x$standard.errors <- tSE
 	x$transformed.inv.hessian <- iHess
 	x$conf.intervals <- matrix(CI, ncol=2, dimnames=list(NULL, c('ci.lower', 'ci.upper')))
+	x$bad.standard.errors <- bad.SE
 	return(x)
 }
 
@@ -455,20 +510,24 @@ is.positive.definite <- function(x){
 	ifelse(any(is(ret) %in% "try-error"), FALSE, TRUE)
 }
 
+is.positive.definite2 <- function(x) {
+  class(try(MASS::ginv(x),silent=TRUE))=="matrix"
+}
+
+# From http://ab-initio.mit.edu/wiki/index.php/NLopt_Reference#Return_values
 .ExitFlags <- c(
-	'1'='Optimization halted because of a forced termination.',
-	'2'='Optimization halted because of roundoff errors.',
-	'3'='Optimization failed. Ran out of memory.',
-	'4'='Optimization halted. Lower bounds are bigger than upper bounds.',
-	'5'='Optimization failed. Check starting values.',
-	'6'='Optimization terminated successfully',
-	'7'='Optimization stopped because objective function reaches stopval',
-	'8'='Optimization terminated successfully: ftol_rel or ftol_abs was reached.',
-	'9'='Optimization terminated successfully: xtol_rel or xtol_abs was reached.',
-	'10'='Maximum number of function evaluations reached.',
-	'11'='Increase maxeval or change starting values.',
-	'12'='Maximum optimization time reached.',
-	'13'='Increase maxtime or change starting values.')
+	'-5'='Optimization halted because of a forced termination.',
+	'-4'='Optimization halted because of roundoff errors.',
+	'-3'='Optimization failed. Ran out of memory.',
+	'-2'='Optimization halted. Lower bounds are bigger than upper bounds.',
+	'-1'='Optimization failed. Check starting values.',
+	'1'='Optimization terminated successfully',
+	'2'='Optimization stopped because objective function reached stopval',
+	'3'='Optimization terminated successfully: ftol_rel or ftol_abs was reached.',
+	'4'='Optimization terminated successfully: xtol_rel or xtol_abs was reached.',
+	'5'='Maximum number of function evaluations reached. Increase maxeval or change starting values.',
+	'6'='Maximum optimization time reached. Increase maxtime or change starting values.',
+	'-6'='Likelihood function is NaN and could not find a way out. Optimizer gave up but is not at a converged optimum.')
 
 PopBackMatrix<-function(values.matrix, param.matrix, trans.parameters){
   if (class(values.matrix)=="list"){
@@ -515,4 +574,108 @@ PopBackModel<-function(dynrModel, trans.parameters){
   dynrModel@regimes@values<-PopBackMatrix(dynrModel@regimes@values, dynrModel@regimes@params, trans.parameters)
   
   return(dynrModel)
+}
+
+#Computes the Sechol-Schnabel cholesky factorization
+#See Sechol-Schnabel, R. B. and Eskow, E. 1990. "A New Modified Cholesky Factorization." SIAM Journal of Scientific Statistical Computing 11, 1136-58.
+sechol <- function(A, tol = .Machine$double.eps, silent= TRUE )  {
+  if (is.complex(A))  {
+    warning("complex matrices not permitted at present")
+    return(NULL)
+  } else if (!is.numeric(A))  {
+    warning("non-numeric argument to 'sechol'")
+    return(NULL)
+  }
+  if (is.matrix(A)) {
+    if (nrow(A) != ncol(A)) {
+      warning("non-square matrix in 'sechol'")
+      return(NULL)
+    }
+  } else {
+    if (length(A) != 1) {
+      warning("non-matrix argument to 'sechol'")
+      return(NULL)
+    }
+    if (A>0) {
+      return(as.matrix(sqrt(A)))
+    } 
+    warning("the leading minor of order 1 is not positive definite")
+    return(NULL)
+  }
+  n <- nrow(A)
+  L <- matrix(rep(0,n*n),ncol=ncol(A))
+  tau <- tol ^(1/3)  # made to match gauss
+  gamm <- max(A)
+  deltaprev <- 0
+  Pprod <- diag(n)
+  if (n > 2)  {
+    for (k in 1:(n-2))  {
+      if( (min(diag(A[(k+1):n,(k+1):n]) - A[k,(k+1):n]^2/A[k,k]) < tau*gamm) 
+          && (min(svd(A[(k+1):n,(k+1):n])$d)) < 0) {
+        dmax <- order(diag(A[k:n,k:n]))[(n-(k-1))]
+        if (A[(k+dmax-1),(k+dmax-1)] > A[k,k])  {
+          if (!silent) {
+            print(paste("iteration:",k,"pivot on:",dmax,"with absolute:",(k+dmax-1)))
+          }
+          P <- diag(n)
+          Ptemp <-  P[k,]; P[k,] <- P[(k+dmax-1),]; P[(k+dmax-1),] = Ptemp
+          A <- P%*%A%*%P
+          L <- P%*%L%*%P
+          Pprod <- P%*%Pprod
+        }
+        g <- rep(0,length=(n-(k-1)))
+        for (i in k:n)  {
+          if (i == 1) sum1 <- 0
+          else sum1 <- sum(abs(A[i,k:(i-1)]))
+          if (i == n) sum2 <- 0
+          else sum2 <- sum(abs(A[(i+1):n,i]))
+          g[i-(k-1)] <- A[i,i] - sum1 - sum2
+        }
+        gmax <- order(g)[length(g)]
+        if (gmax != k)  {
+          if (!silent) {
+            print(paste("iteration:",k,
+                        "gerschgorin pivot on:",gmax,"with absolute:",(k+gmax-1)))
+          }
+          P <- diag(ncol(A))
+          Ptemp <-  P[k,]; P[k,] <- P[(k+dmax-1),]; P[(k+dmax-1),] = Ptemp
+          A <- P%*%A%*%P
+          L <- P%*%L%*%P
+          Pprod <- P%*%Pprod
+        }
+        normj <- sum(abs(A[(k+1):n,k]))
+        delta <- max(0,deltaprev,-A[k,k]+max(normj,tau*gamm))
+        if (delta > 0)  {
+          A[k,k] <- A[k,k] + delta
+          deltaprev <- delta
+        }
+      }
+      
+      L[k,k] <- A[k,k] <- sqrt(A[k,k])
+      for (i in (k+1):n)  {
+        L[i,k] <- A[i,k] <- A[i,k]/L[k,k]
+        A[i,(k+1):i] <- A[i,(k+1):i] - L[i,k]*L[(k+1):i,k]
+        if(A[i,i] < 0) A[i,i] <- 0
+      }
+    }
+  }
+  A[(n-1),n] <- A[n,(n-1)]
+  eigvals <- eigen(A[(n-1):n,(n-1):n])$values
+  delta <- max(0,deltaprev,
+               -min(eigvals)+tau*max((1/(1-tau))*(max(eigvals)-min(eigvals)),gamm))
+  if (delta > 0)  {
+    if (!silent) {
+      print(paste("delta:",delta))
+    }
+    A[(n-1),(n-1)] <- A[(n-1),(n-1)] + delta
+    A[n,n] <- A[n,n] + delta
+    deltaprev <- delta
+  }
+  L[(n-1),(n-1)] <- A[(n-1),(n-1)] <- sqrt(A[(n-1),(n-1)])
+  L[n,(n-1)] <- A[n,(n-1)] <- A[n,(n-1)]/L[(n-1),(n-1)]
+  L[n,n] <- A[n,n] <- sqrt(A[n,n] - L[n,(n-1)]^2)
+  
+  r = t(Pprod)%*%t(L)%*%t(Pprod)
+  attr(r,"delta")=delta
+  return(r)
 }
