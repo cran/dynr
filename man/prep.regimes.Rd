@@ -4,7 +4,7 @@
 \alias{prep.regimes}
 \title{Recipe function for creating regime switching (Markov transition) functions}
 \usage{
-prep.regimes(values, params, covariates)
+prep.regimes(values, params, covariates, deviation = FALSE, refRow)
 }
 \arguments{
 \item{values}{matrix giving the values. Should have (number of Regimes) rows 
@@ -13,6 +13,10 @@ and (number of regimes x number of covariates) columns}
 \item{params}{matrix of the same size as "values" consisting of the names of the parameters}
 
 \item{covariates}{a vector of the names of the covariates to be used in the regime-switching functions}
+
+\item{deviation}{logical. Whether to use the deviation form or not.  See Details.}
+
+\item{refRow}{numeric. Which row is treated at the reference.  See Details.}
 }
 \description{
 Recipe function for creating regime switching (Markov transition) functions
@@ -21,6 +25,11 @@ Recipe function for creating regime switching (Markov transition) functions
 Note that each row of the transition probability matrix must sum to one. To accomplish this
 fix at least one transition log odds parameter in each row of "values" (including its intercept 
 and the regression slopes of all covariates) to 0.
+
+When \code{deviation=FALSE}, the non-deviation form of the multinomial logistic regression is used. This form has a separate intercept term for each entry of the transition probability matrix (TPM). When \code{deviation=TRUE}, the deviation form of the multinomial logistic regression is used. This form has an intercept term that is common to each column of the TPM. The rows are then distinguished by their own individual deviations from the common intercept. The deviation form requires the same reference column constraint as the non-deviation form; however, the deviation form also requires one row to be indicated as the reference row (described below). By default the reference row is taken to be the same as the reference column.
+
+The \code{refRow} argument determines which row is used as the intercept row. It is only
+used in the deviation form (i.e. \code{deviation=TRUE}). In the deviation form, one row of \code{values} and \code{params} contains the intercepts, other rows contain deviations from these intercepts. The \code{refRow} argument says which row contains the intercept terms. The default behavior for \code{refRow} is to be the same as the reference column.  The reference column is automatically detected. If we have problems detecting which is the reference column, then we provide error messages that are as helpful as we can make them.
 }
 \examples{
 #Regime-switching with no covariates (self-transition ID)

@@ -41,7 +41,25 @@ recNoise <- prep.noise(
 
 recReg <- prep.regimes(
 	values=matrix(0, 2, 2),
-	params=matrix(c('p00', 'p10', 'fixed', 'fixed'), 2, 2))
+	params=matrix(c('c11', 'c21', 'fixed', 'fixed'), 2, 2))
+
+recReg2 <- prep.regimes(
+	values=matrix(0, 2, 2),
+	params=matrix(c('dev1', 'base1', 'fixed', 'fixed'), 2, 2),
+	deviation=TRUE) # refRow gets set to refCol=2
+
+recReg1 <- prep.regimes(
+	values=matrix(0, 2, 2),
+	params=matrix(c('base1', 'dev2', 'fixed', 'fixed'), 2, 2),
+	deviation=TRUE, refRow=1) #refRow get set to non-default 1
+
+#recReg <- prep.regimes(
+#	values=matrix(0, 2, 2),
+#	params=matrix(c('p00', 'p10', 'fixed', 'fixed'), 2, 2),
+#	deviation=TRUE, refRow=3) ##rightly causes error, refRow out of bounds
+
+
+
 
 #---- (3d) Initial condition specification ----
 
@@ -65,12 +83,34 @@ recDyn <- prep.matrixDynamics(
 
 rsmod <- dynr.model(dynamics=recDyn, measurement=recMeas, noise=recNoise, initial=recIni, regimes=recReg, data=dd, outfile="RSLinearDiscrete.c")
 
+rsmod1 <- dynr.model(dynamics=recDyn, measurement=recMeas, noise=recNoise, initial=recIni, regimes=recReg1, data=dd, outfile="RSLinearDiscreteDev1.c")
+
+rsmod1$lb['phi_0'] <- -1.5
+
+rsmod2 <- dynr.model(dynamics=recDyn, measurement=recMeas, noise=recNoise, initial=recIni, regimes=recReg2, data=dd, outfile="RSLinearDiscreteDev2.c")
+
+
+# Inspect three versions of the same model
+#  The only difference is how the regimes are created
 printex(rsmod, ParameterAs=rsmod$param.names, printInit=TRUE,printRS=TRUE,
         outFile="RSLinearDiscrete.tex")
 #tools::texi2pdf("RSLinearDiscrete.tex")
 #system(paste(getOption("pdfviewer"), "RSLinearDiscrete.pdf"))
+printex(rsmod1, ParameterAs=rsmod1$param.names, printInit=TRUE,printRS=TRUE,
+        outFile="RSLinearDiscrete1.tex")
+#tools::texi2pdf("RSLinearDiscrete1.tex")
+#system(paste(getOption("pdfviewer"), "RSLinearDiscrete1.pdf"))
+printex(rsmod2, ParameterAs=rsmod2$param.names, printInit=TRUE,printRS=TRUE,
+        outFile="RSLinearDiscrete2.tex")
+#tools::texi2pdf("RSLinearDiscrete2.tex")
+#system(paste(getOption("pdfviewer"), "RSLinearDiscrete2.pdf"))
+
 
 yum <- dynr.cook(rsmod, debug_flag=TRUE)
+yum1 <- dynr.cook(rsmod1)
+yum2 <- dynr.cook(rsmod2)
+
+
 
 #---- (5) Serve it! ----
 
@@ -99,9 +139,9 @@ plot(yum, dynrModel = rsmod, style = 2, textsize = 5)
 truep <- c(phi0=.3, phi1=.9, beta0=0, beta1=.5, mu0=3, mu1=4, dynnoise=.5^2, p00=.99, p10=.01)
 estp <- coef(yum)
 
-r1 <- c(coef(yum)[which(rsmod$param.names=="p00")],0)
+r1 <- c(coef(yum)[which(rsmod$param.names=="c11")],0)
 (r1 <- exp(r1)/sum(exp(r1))) #first row of transition probability matrix
-r2 <- c(coef(yum)[which(rsmod$param.names=="p10")],0)
+r2 <- c(coef(yum)[which(rsmod$param.names=="c21")],0)
 (r2 <- exp(r2)/sum(exp(r2))) #second row of transition probability matrix
 
 estp[8:9] <- c(r1[1], r2[1])
@@ -119,9 +159,9 @@ withinIntervals <- yum@conf.intervals[1:7,1] < truep[1:7] & truep[1:7] < yum@con
 testthat::expect_true(all(withinIntervals))
 
 
-#---- (6) Compare true and estimated states ----
+#---- (7) Compare true and estimated states ----
 
-#---- (6a) latent states ----
+#---- (7a) latent states ----
 
 #pdf('plotFilterSmoothEMG.pdf')
 
@@ -147,7 +187,7 @@ text(x=1, y=-2, labels=paste0('r = ', round(updateCor,3)), adj=c(1,1))
 text(x=1, y=-2.5, labels=paste0('RMSE = ', round(updateRMS,3)), adj=c(1,1))
 
 
-#---- (6b) latent regimes ----
+#---- (7b) latent regimes ----
 
 
 (rtab <- table(trueRegime=EMGsim$trueregime, estRegime=estRegime))
@@ -158,5 +198,14 @@ axis(side=2, at=c(0,1))
 text(x=c(0,0,1,1), y=c(0+.25,1-.25,0+.25,1-.25), labels=c(rtab))
 
 #dev.off()
+
+
+#---- (8) Compare deviation and non-deviation estimates ----
+
+
+testthat::expect_equal(coef(yum)['c11'], coef(yum1)['base1'], tolerance=0.001, check.names=FALSE)
+testthat::expect_equal(coef(yum)['c21'], coef(yum2)['base1'], tolerance=0.001, check.names=FALSE)
+testthat::expect_equal(coef(yum)['c21'], sum(coef(yum1)[c('base1', 'dev2')]), tolerance=0.001, check.names=FALSE)
+testthat::expect_equal(coef(yum)['c11'], sum(coef(yum2)[c('base1', 'dev1')]), tolerance=0.001, check.names=FALSE)
 
 

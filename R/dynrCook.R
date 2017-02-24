@@ -11,6 +11,9 @@
 ##' @aliases
 ##' dynrOutall-class
 ##' dynrDebug-class
+##' $,dynrCook-method
+##' print,dynrCook-method
+##' show,dynrCook-method
 ##' 
 ##' @details
 ##' This is an internal class structure.  You should not use it directly.
@@ -177,25 +180,45 @@ setMethod("initialize", "dynrOutall",
 #  and returns/does whatever we want.
 # See Also the print method of summary.lm
 #  getAnywhere(print.summary.lm)
-summaryResults<-function(object){
-             d <- data.frame(names=object@param.names, transformed.parameters=object@transformed.parameters, standard.errors=object@standard.errors)
-             d$t_value<-ifelse(d$standard.errors==0, NA, d$transformed.parameters/d$standard.errors)
-             d <-cbind(d,object@conf.intervals)
-             d$bad <- factor(c("", "!")[object@bad.standard.errors + 1])
+summaryResults <- function(object, ...){
+             ret <- list()
+             d <- data.frame(transformed.parameters=object@transformed.parameters, standard.errors=object@standard.errors)
+             row.names(d) <- names(coef(object))
+             d$t_value <- ifelse(d$standard.errors==0, NA, d$transformed.parameters/d$standard.errors)
+             d <- cbind(d, object@conf.intervals)
+             #d$bad <- factor(c("", "!")[object@bad.standard.errors + 1])
+             d$p <- pt( abs(d$t_value), df=nobs(object) - nrow(d), lower.tail=FALSE)
              neg2LL = -2*logLik(object)
              AIC = AIC(object)
              BIC = BIC(object)
-             colnames(d) = c("names", "parameters", "s.e.", "t-value", "ci.lower", "ci.upper", "")
-             print(d)
-             cat(paste0("\n-2 log-likelihood value at convergence = ", sprintf("%.02f", round(neg2LL,2))))
-             cat(paste0("\nAIC = ", sprintf("%.02f", round(AIC,2))))
-             cat(paste0("\nBIC = ", sprintf("%.02f", round(BIC,2))))
-             cat("\n")
+             colnames(d) = c("Estimate", "Std. Error", "t value", "ci.lower", "ci.upper", #"",
+               "Pr(>|t|)")
+             ret$Coefficients <- d
+             ret$neg2LL <- neg2LL
+             ret$AIC <- AIC
+             ret$BIC <- BIC
+             class(ret) <- "summary.dynrCook"
+             return(ret)
            }
+
+print.summary.dynrCook <- function(x, digits = max(3L, getOption("digits") - 3L), signif.stars = getOption("show.signif.stars"), ...){
+	cat("Coefficients:\n")
+	printCoefmat(x$Coefficients, cs.ind=c(1L, 2L, 4L, 5L), tst.ind=3L, zap.ind=6L, digits = digits, signif.stars = signif.stars, ...)
+	cat(paste0("\n-2 log-likelihood value at convergence = ", sprintf("%.02f", round(x$neg2LL,2))))
+	cat(paste0("\nAIC = ", sprintf("%.02f", round(x$AIC,2))))
+	cat(paste0("\nBIC = ", sprintf("%.02f", round(x$BIC,2))))
+	cat("\n")
+	invisible(x)
+}
+
+coef.summary.dynrCook <- function(object, ...){
+	object$Coefficients
+}
 
 ##' Get the summary of a dynrCook object
 ##' 
 ##' @param object The dynrCook object for which the summary is desired.
+##' @param ... Further named arguments, passed to the print method (e.g., \code{digits} and \code{signif.stars}).
 ##' 
 ##' @details
 ##' The summary gives information on the free parameters estimated: names, parameter values, numerical Hessian-based standard errors, t-values (values divided by standard errors), and standard-error based confidence intervals.  Additionally, the likelihood, AIC, and BIC are provided.
@@ -203,21 +226,29 @@ summaryResults<-function(object){
 ##' Note that an exclamation point (!) in the final column of the summary table indicates that
 ##' the standard error and confidence interval for this parameter may not be trustworthy. The corresponding
 ##' element of the (transformed, inverse) Hessian was negative and an absolute value was taken to make it positive.
-setMethod( f = "summary",  signature = "dynrCook" ,
-           definition = summaryResults)
+##' 
+##' @method summary dynrCook
+summary.dynrCook <- summaryResults
 
 
-display.dynrCook <- function(x, ...){
-  str(x)
-  invisible(x)
+displayDynrCook <- function(x, ...){
+	maxChar <- max(nchar(sn <- slotNames(x)))
+	tfmt <- paste0("..$ %-", maxChar, "s:")
+	for(aslot in sn){
+		if( !(aslot %in% c("conf.intervals", "hessian", "transformed.inv.hessian", "neg.log.likelihood", "param.names")) ){
+			cat(sprintf(tfmt, aslot))
+			str(slot(x, aslot))
+		}
+	}
+	return(invisible(x))
 }
 
 setMethod("print", "dynrCook", function(x, ...) { 
-  display.dynrCook(x) 
+  displayDynrCook(x) 
 })
 
 setMethod("show", "dynrCook", function(object) { 
-  display.dynrCook(object) 
+  displayDynrCook(object) 
 })
 
 
@@ -229,6 +260,8 @@ setMethod("show", "dynrCook", function(object) {
 # BIC
 
 ##' Extract fitted parameters from a dynrCook Object
+##' 
+##' aliases coef.dynrModel coef<- coef<-.dynrModel
 ##' 
 ##' @param object The dynrCook object for which the coefficients are desired
 ##' @param ... further named arguments, ignored for this method
@@ -251,13 +284,17 @@ coef.dynrCook <- function(object, ...){
 
 ##' Extract the log likelihood from a dynrCook Object
 ##' 
+##' @aliases deviance.dynrCook
+##' 
 ##' @param object The dynrCook object for which the log likelihood is desired
 ##' @param ... further named arguments, ignored for this method
 ##' 
 ##' @details
 ##' The 'df' attribute for this object is the number of freely estimated parameters. The 'nobs' attribute is the total number of rows of data, adding up the number of time points for each person.
 ##' 
-##' @return An object of class \code{logLik}.
+##' The \code{deviance} method returns minus two times the log likelihood.
+##' 
+##' @return In the case of \code{logLik}, an object of class \code{logLik}.
 ##' 
 ##' @seealso Other S3 methods \code{\link{coef.dynrCook}}
 ##' 
@@ -267,13 +304,39 @@ coef.dynrCook <- function(object, ...){
 logLik.dynrCook <- function(object, ...){
   ans <- -object@neg.log.likelihood
   attr(ans, "df") <- length(object@fitted.parameters)
-  attr(ans, "nobs") <- dim(object@eta_smooth_final)[2]
+  attr(ans, "nobs") <- nobs(object) #dim(object@eta_smooth_final)[2]
   class(ans) <- "logLik"
   return(ans)
 }
 
 # N.B. AIC() and BIC() are implicitly defined in terms
 #  of logLik().
+
+##' @rdname logLik.dynrCook
+deviance.dynrCook <- function(object, ...){
+	as.numeric(-2*logLik(object))
+}
+
+##' Extract the number of observations for a dynrCook object
+##' 
+##' @param object A fitted model object
+##' @param ... Further named arguments. Ignored.
+##' 
+##' @details
+##' We return the total number of rows of data, adding up the number of time points for each person. For some purposes, you may want the mean number of observations per person or the number of people instead.  These are not currently supported via \code{nobs}.
+##' 
+##' @return
+##' A single number. The total number of observations across all IDs.
+##' 
+##' @examples
+##' # Let cookedModel be the output from dynr.cook
+##' #nobs(cookedModel)
+nobs.dynrCook <- function(object, ...){
+	dim(object@eta_smooth_final)[2]
+}
+# TODO could give sample size for each individual through the ...
+# arguments
+
 
 ##' Extract the Variance-Covariance Matrix of a dynrCook object
 ##' 
@@ -287,6 +350,73 @@ vcov.dynrCook <- function(object, ...){
 	rt <- object@transformed.inv.hessian
 	dimnames(rt) <- list(nm, nm)
 	return(rt)
+}
+
+##' Extract the free parameter names of a dynrCook object
+##' 
+##' @param x The dynrCook object from which the free parameter names are desired
+setMethod("names", "dynrCook",
+	function(x) {
+		pnames <- names(coef(x))
+		output <- c(pnames)
+		output <- gsub("(\\w+\\W+.*)", "'\\1'", output)
+		return(output)
+	}
+)
+
+setMethod("$", "dynrCook",
+          function(x, name){slot(x, name)}
+)
+
+.DollarNames.dynrCook <- function(x, pattern){
+	if(missing(pattern)){
+		pattern <- ''
+	}
+	output <- slotNames(x)
+	output <- gsub("(\\w+\\W+.*)", "'\\1'", output)
+	return(grep(pattern, output, value=TRUE))
+}
+
+##' Confidence Intervals for Model Parameters
+##' 
+##' @param object a fitted model object
+##' @param parm which parameters are to be given confidence intervals
+##' @param level the confidence level
+##' @param ... further names arguments. Ignored.
+##' 
+##' @details
+##' The \code{parm} argument can be a numeric vector or a vector of names. If it is missing then it defaults to using all the parameters.
+##' 
+##' These are Wald-type confidence intervals based on the standard errors of the (transformed) parameters.  Wald-type confidence intervals are known to be inaccurate for variance parameters, particularly when the variance is near zero (See references for issues with Wald-type confidence intervals).
+##' 
+##' @return
+##' A matrix with columns giving lower and upper confidence limits for each parameter. These will be labelled as (1-level)/2 and 1 - (1-level)/2 as a percentage (e.g. by default 2.5% and 97.5%).
+##' 
+##' @references
+##' Pritikin, J.N., Rappaport, L.M. & Neale, M.C.  (In Press). Likelihood-Based Confidence Intervals for a Parameter With an Upper or Lower Bound.  Structural Equation Modeling.  DOI: 10.1080/10705511.2016.1275969
+##' 
+##' Neale, M. C. & Miller M. B. (1997). The use of likelihood based confidence intervals in genetic models. Behavior Genetics, 27(2), 113-120.
+##' 
+##' Pek, J. & Wu, H. (2015). Profile likelihood-based confidence intervals and regions for structural equation models. Psychometrica, 80(4), 1123-1145.
+##' 
+##' Wu, H. & Neale, M. C. (2012). Adjusted confidence intervals for a bounded parameter. Behavior genetics, 42(6), 886-898.
+##' 
+##' @examples
+##' # Let cookedModel be the output from dynr.cook
+##' #confint(cookedModel)
+confint.dynrCook <- function(object, parm, level = 0.95, ...){
+	vals <- coef(object)
+	if(missing(parm)){
+		parm <- names(vals)
+	}
+	vals <- vals[parm]
+	iHess <- vcov(object)[parm, parm, drop=FALSE]
+	SE <- sqrt(diag(iHess))
+	tlev <- (1-level)/2
+	confx <- qnorm(1-tlev)
+	CI <- matrix(c(vals - SE*confx, vals + SE*confx), ncol=2)
+	dimnames(CI) <- list(names(vals), c(paste(tlev*100, "%"), paste((1 - tlev)*100, "%")) )
+	return(CI)
 }
 
 #------------------------------------------------------------------------------
@@ -304,7 +434,14 @@ vcov.dynrCook <- function(object, ...){
 ##' @param weight_flag a flag (TRUE/FALSE) indicating whether the negative log likelihood function should 
 ##' be weighted by the length of the time series for each individual
 ##' @param debug_flag a flag (TRUE/FALSE) indicating whether users want additional dynr output that can 
-##' be used for diagnostic purposes 
+##' be used for diagnostic purposes
+##' 
+##' @details
+##' Free parameter estimation uses the SLSQP routine from NLOPT.
+##' 
+##' The typical items returned in the cooked model are the smoothed latent variable estimates only.  The time-varying latent variable means are called \code{eta_smooth_final}; the time-varying latent variable (co-)variances are called \code{error_cov_smooth_final}; and the time-varying smoothed probability of each regime is called \code{pr_t_given_T}.
+##' 
+##' When \code{debug_flag} is TRUE, then additional information is passed into the cooked model. This information can get quite large, so it is not returned unless requested. The information gets large because these items often depend on the regime in addition to time. The updated latent states for each possible regime are in \code{eta_regime_t}; the updated latent covariances for each possible regime are in \code{error_cov_regime_t}; the latent residual (innovation vector) from each regime to each regime is stored in \code{innov_vec}; and the inverse of the updated latent covariance matrix from each regime to each regime is in \code{inverse_residual_cov}.
 ##' 
 ##' @examples
 ##' #fitted.model <- dynr.cook(model)
@@ -476,6 +613,7 @@ preProcessModel <- function(x){
 	return(x)
 }
 
+
 combineModelDataInformation <- function(model, data){
 	# TODO add argument to dynrModel a la "usevars"
 	# process usevars together with dynrData to drop
@@ -573,6 +711,11 @@ PopBackModel<-function(dynrModel, trans.parameters){
   dynrModel@initial@values.regimep<-PopBackMatrix(dynrModel@initial@values.regimep, dynrModel@initial@params.regimep, trans.parameters)
   dynrModel@regimes@values<-PopBackMatrix(dynrModel@regimes@values, dynrModel@regimes@params, trans.parameters)
   
+  # process model matrices to re-extract start values
+  if(length(dynrModel$transform$inv.tfun.full) > 0 && is.numeric(trans.parameters)){
+    trans.parameters <- dynrModel$transform$inv.tfun.full(trans.parameters)
+    dynrModel@xstart <- trans.parameters
+  }
   return(dynrModel)
 }
 

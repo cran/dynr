@@ -5,6 +5,8 @@
 \alias{$,dynrModel-method}
 \alias{$<-,dynrModel-method}
 \alias{dynrModel-class}
+\alias{print,dynrModel-method}
+\alias{show,dynrModel-method}
 \title{The dynrModel Class}
 \description{
 The dynrModel Class

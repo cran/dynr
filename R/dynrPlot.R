@@ -127,9 +127,8 @@ Mode <- function(y) {
 ##' @param ... Further named arguments
 ##' 
 ##' @details
-##' This is a wrapper around \code{\link{dynr.ggplot}}.  A great benefit of it is that is shows the equations for the plot.
-setMethod("plot", "dynrCook",
-          function(x, dynrModel, style = 1, names.state, names.observed, printDyn=TRUE, printMeas=TRUE, textsize=4, ...) {
+##' This is a wrapper around \code{\link{dynr.ggplot}}.  A great benefit of it is that it shows the model equations in a plot.
+plot.dynrCook <- function(x, dynrModel, style = 1, names.state, names.observed, printDyn=TRUE, printMeas=TRUE, textsize=4, ...) {
   #The first panel is the ggplot
   if(missing(names.observed)){names.observed=dynrModel@measurement@obs.names}
   if(missing(names.state)){names.state=dynrModel@measurement@state.names}
@@ -159,7 +158,7 @@ setMethod("plot", "dynrCook",
     multiplot(p1, p3, layout=matrix(c(1,1,2,2), nrow=2, byrow=TRUE))
   }
 
-  })
+}
 
 plotdf <- function(vec_tex){
   dataframe=data.frame(text=sapply(paste0("$",vec_tex,"$"),function(x){as.character(latex2exp::TeX(x))}))
@@ -290,6 +289,8 @@ plotFormula <- function(dynrModel, ParameterAs, printDyn=TRUE, printMeas=TRUE, t
 }
 
 ##' The ggplot of the smoothed state estimates and the most likely regimes
+##'
+##' @aliases autoplot.dynrCook
 ##' 
 ##' @param res The dynr object returned by dynr.cook().
 ##' @param dynrModel The model object to plot.
@@ -308,6 +309,9 @@ plotFormula <- function(dynrModel, ParameterAs, printDyn=TRUE, printMeas=TRUE, t
 ##' @param mancolorPalette (optional) A color palette for manually scaling the colors of lines and plots.
 ##' @param manfillPalette (optional) A color palette for manually scaling the colors of filled blocks.
 ##' @param ... A list of element name, element pairings that modify the existing ggplot2::ggplot ggplot2::theme. Consult the ggplot2::theme() function in the R package ggplot2::ggplot.
+##' 
+##' @details
+##' The two functions \code{dynr.ggplot} and \code{autoplot} as identical aliases of one another.  The \code{autoplot} function is an S3 method from ggplot2 that allows many objects to be plotted in that package.
 dynr.ggplot <- function(res, dynrModel, style = 1,
                         numSubjDemo=2, idtoPlot=c(),
                         names.state, 
@@ -526,6 +530,32 @@ dynr.ggplot <- function(res, dynrModel, style = 1,
   }
 }
 
-
-
+##' @rdname dynr.ggplot
+##' 
+##' @param object The same as res. The dynr object returned by dynr.cook().
+autoplot.dynrCook <- function(object, dynrModel, style = 1,
+                        numSubjDemo=2, idtoPlot=c(),
+                        names.state, 
+                        names.observed,
+                        names.regime,
+                        shape.values,
+                        title, 
+                        ylab, 
+                        is.bw=FALSE, 
+                        colorPalette="Set2", 
+                        fillPalette="Set2", 
+                        mancolorPalette, manfillPalette, ...){
+	dynr.ggplot(object, dynrModel=dynrModel, style = style,
+                        numSubjDemo=numSubjDemo, idtoPlot=idtoPlot,
+                        names.state=names.state, 
+                        names.observed=names.observed,
+                        names.regime=names.regime,
+                        shape.values=shape.values,
+                        title=title, 
+                        ylab=ylab, 
+                        is.bw=is.bw, 
+                        colorPalette=colorPalette, 
+                        fillPalette=fillPalette, 
+                        mancolorPalette=mancolorPalette, manfillPalette=manfillPalette, ...)
+}
 

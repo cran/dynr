@@ -29,6 +29,13 @@ be used for diagnostic purposes}
 \description{
 Cook a dynr model to estimate its free parameters
 }
+\details{
+Free parameter estimation uses the SLSQP routine from NLOPT.
+
+The typical items returned in the cooked model are the smoothed latent variable estimates only.  The time-varying latent variable means are called \code{eta_smooth_final}; the time-varying latent variable (co-)variances are called \code{error_cov_smooth_final}; and the time-varying smoothed probability of each regime is called \code{pr_t_given_T}.
+
+When \code{debug_flag} is TRUE, then additional information is passed into the cooked model. This information can get quite large, so it is not returned unless requested. The information gets large because these items often depend on the regime in addition to time. The updated latent states for each possible regime are in \code{eta_regime_t}; the updated latent covariances for each possible regime are in \code{error_cov_regime_t}; the latent residual (innovation vector) from each regime to each regime is stored in \code{innov_vec}; and the inverse of the updated latent covariance matrix from each regime to each regime is in \code{inverse_residual_cov}.
+}
 \examples{
 #fitted.model <- dynr.cook(model)
 }

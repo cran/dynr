@@ -6,6 +6,8 @@
 ##' @aliases
 ##' $,dynrModel-method
 ##' $<-,dynrModel-method
+##' print,dynrModel-method
+##' show,dynrModel-method
 ##' 
 ##' @details
 ##' This is an internal class structure.  You should not use it directly.
@@ -51,11 +53,49 @@ setMethod("$", "dynrModel",
           function(x, name){slot(x, name)}
 )
 
+
+setMethod("print", "dynrModel", printRecipeOrModel)
+setMethod("show", "dynrModel", function(object){printRecipeOrModel(object)})
+
+
+##' Extract the free parameter names of a dynrModel object
+##' 
+##' @param x The dynrModel object from which the free parameter names are desired
+setMethod("names", "dynrModel",
+	function(x) {
+		pnames <- x$param.names
+		output <- c(pnames)
+		output <- gsub("(\\w+\\W+.*)", "'\\1'", output)
+		return(output)
+	}
+)
+
+.DollarNames.dynrModel <- function(x, pattern){
+	if(missing(pattern)){
+		pattern <- ''
+	}
+	output <- slotNames(x)
+	output <- gsub("(\\w+\\W+.*)", "'\\1'", output)
+	return(grep(pattern, output, value=TRUE))
+}
+
 setReplaceMethod("$", "dynrModel",
 	function(x, name, value){
 		if(name %in% c('xstart', 'ub', 'lb')){
 			# Check that the length is okay
-			slot(object=x, name=name, check = TRUE) <- x$transform$inv.tfun.full(value)
+			if(length(value) != length(x$param.names)){
+				stop(paste("I'm going over my borders.", "You gave me", length(value), "things,",
+					"but I need", length(x$param.names),
+					"(the number of free parameters)."))
+			}
+			if(is.null(names(value))){
+				names(value) <- x$param.names
+			}
+			lookup <- match(names(value), x$param.names)
+			lookup <- union(na.omit(lookup), 1L:length(value))
+			value[lookup] <- value
+			names(value) <- x$param.names
+			slot(object=x, name=name, check = TRUE) <- x$transform$inv.tfun.full(value) #suppressWarnings(expr)
 		} else if(name %in% c('dynamics', 'measurement', 'noise', 'initial', 'regimes', 'transform')) {
 			slot(object=x, name=name, check = TRUE) <- value
 		} else {
@@ -65,36 +105,97 @@ setReplaceMethod("$", "dynrModel",
 	}
 )
 
+##' Extract the number of observations for a dynrModel object
+##' 
+##' @param object An unfitted model object
+##' @param ... Further named arguments. Ignored.
+##' 
+##' @details
+##' We return the total number of rows of data, adding up the number of time points for each person. For some purposes, you may want the mean number of observations per person or the number of people instead.  These are not currently supported via \code{nobs}.
+##' 
+##' @return
+##' A single number. The total number of observations across all IDs.
+##' 
+##' @examples
+##' # Let rawModel be the output from dynr.model
+##' #nobs(rawModel)
+nobs.dynrModel <- function(object, ...){
+	dim(object$data$observed)[1]
+}
+
+
+##' @rdname coef.dynrCook
+coef.dynrModel <- function(object, ...){
+	object$transform$tfun(object$xstart)
+}
+
+##' @rdname coef.dynrCook
+##' 
+##' @param value values for setting
+`coef<-` <- function(object, value){
+	UseMethod("coef<-")
+}
+
+##' @rdname coef.dynrCook
+`coef<-.dynrModel` <- function(object, value){
+	object <- PopBackModel(object, value)
+	return(object)
+}
+
+
 implode <- function(..., sep='') {
   paste(..., collapse=sep)
 }
 
 
 vecRegime <- function(object){
-  numRegimes <- nrow(object$values)
-  covariates <- object$covariates
-  numCovariates <- length(covariates)
-  
-  Prlist <- list()
-  for (j in 1:numRegimes){
-  values <- object$values[j,which(object$values[j,]!=0)]
-  params <- object$params[j,which(object$values[j,]!=0)]
-  colIndex <- which(params==params)    #which(object$values[j,]!="0")
-  colIndexSet <- ceiling((colIndex)/(numCovariates+1))
-  for (q in unique(colIndexSet)){
-  colIndex2 <- which(colIndexSet==q)
-  a <- diag(matrix(outer(matrix(values[colIndex2],ncol=numCovariates+1), 
-           matrix(c(1,object$covariates),ncol=1),
-           FUN=paste,sep="*"),ncol=numCovariates+1))
-  #namesLO = paste0("&\\frac{Pr(p",j,q,")}{1-Pr(p",j,q,")}")
-  namesLO = paste0("&Log Odds(p",j,q,")")
-  a <- paste0(namesLO," = ", 
-              implode(gsub("*1","",a,fixed=TRUE),sep=" + "))
-  Prlist <- paste0(Prlist , a, "\\\\")
-              }#End of loop through colIndex
-  }#End of loop through regime
-  return(Prlist)
-}  
+	objValues <- object$values
+	objParams <- object$params
+	numRegimes <- nrow(object$values)
+	covariates <- object$covariates
+	numCovariates <- length(covariates)
+	deviation <- object$deviation
+	refRow <- object$refRow
+	
+	if(deviation){
+		if(nrow(objValues)!=0 && nrow(objParams)!=0){
+			interceptSel <- seq(1, ncol(objValues), by=numCovariates+1)
+			intercept.values <- matrix(objValues[refRow, interceptSel], numRegimes, 1)
+			intercept.params <- matrix(objParams[refRow, interceptSel], numRegimes, 1)
+			objValues[refRow, interceptSel] <- 0
+			objParams[refRow, interceptSel] <- 0
+		}
+	} else {
+		intercept.values <- matrix(0, numRegimes, 1)
+		intercept.params <- matrix(0, numRegimes, 1)
+	}
+	
+	colBeginSeq <- seq(1, ncol(objValues), by=numCovariates+1)
+	colEndSeq <- colBeginSeq + numCovariates
+	Prlist <- list()
+	for (j in 1:numRegimes){
+		for(k in 1:numRegimes){
+			colSel <- colBeginSeq[k]:colEndSeq[k]
+			#namesLO = paste0("&\\frac{Pr(p",j,k,")}{1-Pr(p",j,k,")}")
+			namesLO = paste0("&Log Odds(p", j, k, ")")
+			mat1 <- matrix(objValues[j, colSel], ncol=numCovariates+1)
+			mat2 <- matrix(c(1, covariates), ncol=1)
+			# drop zeros before multiplication
+			mat1 <- mat1[mat1 !=0 ]
+			mat2 <- mat2[mat1 !=0 ]
+			a <- paste(mat1, mat2, sep="*")
+			a <- gsub("*1", "", a, fixed=TRUE)
+			b <- intercept.values[k, 1]
+			b <- b[ b != 0]
+			a <- implode(c(b, a), sep=" + ")
+			if(nchar(a) > 0){
+				a <- paste0(namesLO, " = ", a)
+				Prlist <- paste0(Prlist , a, "\\\\")
+			}
+		}#End of loop through colIndex
+	}#End of loop through regime
+	return(Prlist)
+}
 
 LaTeXnames<-function(names, decimal = 2, latex = TRUE){
   if (latex == TRUE){
@@ -325,13 +426,13 @@ setMethod("printex", "dynrModel",
               #initial regime probabilities
               initProb <- outlist[[4]]$initial.probability
               outProb <- NULL
-              if (length((model2$initial)$values.regimep)>1){
+              if (model2$num_regime > 1){
                 #Only print initial regime probabilities if > 1 regime
                 outProb <- paste0("&\\text{Initial regime probabilities = }",
                                   initProb,"\\\\\n")
               }
               #regime switch probability
-              if (length((model2$initial)$values.regimep)>1){
+              if (model2$num_regime > 1){
                 Prlist <- implode(vecRegime(model2$regimes),sep="&\\\\\n")
                 #Only print initial RS probabilities if > 1 regime
                 RSequ=paste0("\\begin{align*}\n",outProb,
@@ -388,6 +489,16 @@ setMethod("printex", "dynrModel",
 ##' @param outfile a character string of the name of the output C script of model functions to be compiled 
 ##' for parameter estimation.
 ##' 
+##' @details
+##' A \code{dynrModel} is a collection of recipes.  The recipes are constructed with the functions \code{\link{prep.measurement}}, \code{\link{prep.noise}}, \code{\link{prep.formulaDynamics}}, \code{\link{prep.matrixDynamics}}, \code{\link{prep.initial}}, and in the case of regime-switching models \code{\link{prep.regimes}}.  Additionally, data must be prepared with \code{\link{dynr.data}} and added to the model.
+##' 
+##' There are several available methods for \code{dynrModel} objects.
+##' \itemize{
+##' 	\item The dollar sign ($) can be used to both get objects out of a model and to set pieces of the model.
+##' 	\item \code{names} returns the names of the free parameters in a model.
+##' 	\item \code{\link{printex}} prints LaTeX expressions for the equations that compose a model. The output can then be readily typeset for inclusion in presentations and papers.
+##' }
+##' 
 ##' @examples
 ##' #rsmod <- dynr.model(dynamics=recDyn, measurement=recMeas, noise=recNoise, 
 ##' #    initial=recIni, regimes=recReg, data=dd, outfile="RSLinearDiscrete.c")
@@ -409,6 +520,40 @@ dynr.model <- function(dynamics, measurement, noise, initial, data, ..., outfile
   if (!all(measurement@obs.names == data$observed.names)){
     stop("The obs.names slot of the 'dynrMeasurement' object should match the observed argument passed to the dynr.data() function.")
   }
+  # check and modify the data
+  ## For discrete-time models, the time points needs to be equally spaced. 
+  if (!dynamics$isContinuousTime){
+    time.split = split(data$time, as.factor(data$id))
+    time.check = sapply(time.split, function(x) {
+      difference = diff(x)
+      return(c(spacing = sum(difference%%min(difference)) > 1e-6, #can be a very small positive number
+               full = sum(diff(difference)) > 1e-6))
+    })
+    if(any(time.check["spacing",])){
+      stop("Please check the data. The time points are irregularly spaced even with missingness inserted.")
+    }else if (any(time.check["full",])){
+      if ("covariates" %in% names(data)){
+        data.dataframe <- data.frame(id = data$id, time = data$time, data$observed, data$covariates)
+        
+        data.new.dataframe <- plyr::ddply(data.dataframe, "id", function(df){
+          new = data.frame(id = unique(df$id), time = seq(df$time[1], df$time[length(df$time)], by = min(diff(df$time))))
+          out = merge(new, df, all.x = TRUE)
+        })
+        
+        data <- dynr.data(data.new.dataframe, observed = paste0("obs", 1:length(data$observed.names)), covariates = paste0("covar", 1:length(data$covariate.names)))
+      }else{
+        data.dataframe <- data.frame(id = data$id, time = data$time, data$observed)
+        
+        data.new.dataframe <- plyr::ddply(data.dataframe, "id", function(df){
+          new = data.frame(id = unique(df$id), time = seq(df$time[1], df$time[length(df$time)], by = min(diff(df$time))))
+          out = merge(new, df, all.x = TRUE)
+        })
+        
+        data <- dynr.data(data.new.dataframe, observed = paste0("obs", 1:length(data$observed.names)))
+      }
+    }
+  }
+  
   # gather inputs
   inputs <- list(dynamics=dynamics, measurement=measurement, noise=noise, initial=initial, ...)
 
@@ -461,6 +606,9 @@ dynr.model <- function(dynamics, measurement, noise, initial, data, ..., outfile
   obj.dynrModel@xstart <- param.data$param.value
   obj.dynrModel@ub <- as.double(rep(NA, length(obj.dynrModel@xstart)))
   obj.dynrModel@lb <- as.double(rep(NA, length(obj.dynrModel@xstart)))
+  names(obj.dynrModel@xstart) <- obj.dynrModel@param.names
+  names(obj.dynrModel@ub) <- obj.dynrModel@param.names
+  names(obj.dynrModel@lb) <- obj.dynrModel@param.names
   if(any(sapply(inputs, class) %in% 'dynrRegimes')){
     obj.dynrModel@num_regime<-dim(inputs$regimes$values)[1]
   }

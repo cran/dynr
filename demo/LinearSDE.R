@@ -133,6 +133,12 @@ model <- dynr.model(dynamics=dynamics, measurement=meas, noise=ecov, initial=ini
 
 # set upper bounds, if you want
 model$ub <- c(100, 100, 100, 100, 100)
+model$ub <- c(friction=101, spring=100, inipos=103, 100, 100)
+model$ub['dnoise'] <- 99
+
+# Developer
+# Check that an error message is thrown
+testthat::expect_error(model$ub <- c(friction=101, spring=100, inipos=103, 100, 100, 4), regexp="I'm going over my borders. You gave me 6 things, but I need 5 (the number of free parameters).", fixed=TRUE)
 
 
 printex(model,ParameterAs=model$param.names,show=FALSE,printInit=TRUE,
@@ -154,6 +160,10 @@ plotFormula(model, res@transformed.parameters)
 plot(res, dynrModel=model, textsize=6, style = 1)
 plot(res, dynrModel=model, textsize=6, style = 2)
 
+
+autoplot(res, model, numSubjDemo=1)
+
+
 # get the estimated parameters from a cooked model/data combo
 coef(res)
 
@@ -167,8 +177,10 @@ BIC(res)
 trueParams <- c(-.3, -.7, 2.2, 1.5, 0)
 data.frame(name=c('Spring', 'Damping', 'DynVar', 'MeasVar', 'IniPos'), true=trueParams, estim=coef(res))
 
+(CI <- confint(res))
+
 # Check that all true parameters are within the confidence intervals of the estimated params
-withinIntervals <- res@conf.intervals[,1] < trueParams & trueParams < res@conf.intervals[,2]
+withinIntervals <- CI[,1] < trueParams & trueParams < CI[,2]
 testthat::expect_true(all(withinIntervals))
 
 # compare estimated smoothed latent states to true

@@ -1,5 +1,5 @@
 Package: dynr
-Date: 2017-01-08
+Date: 2017-02-23
 Title: Dynamic Modeling in R
 Authors@R: c(person("Lu", "Ou", role=c("aut", "cre"), email="lzo114@psu.edu"),
     person(c("Michael", "D."), "Hunter", role="aut"),
@@ -28,8 +28,8 @@ LazyData: yes
 Collate: 'dynrData.R' 'dynrRecipe.R' 'dynrModelInternal.R'
         'dynrModel.R' 'dynrCook.R' 'dynrPlot.R' 'dynrFuncAddress.R'
         'dynrVersion.R' 'dataDoc.R'
-Version: 0.1.8-17
+Version: 0.1.9-20
 RoxygenNote: 5.0.1
-Packaged: 2017-01-08 19:37:58 UTC; mhunter1
+Packaged: 2017-02-24 01:02:17 UTC; admin_lzo114
 Repository: CRAN
-Date/Publication: 2017-01-09 09:49:40
+Date/Publication: 2017-02-24 08:31:49

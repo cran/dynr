@@ -4,32 +4,42 @@
 \alias{dynr.data}
 \title{Create a list of data for parameter estimation (cooking dynr) using \code{\link{dynr.cook}}}
 \usage{
-dynr.data(dataframe, id, time, observed, covariates)
+dynr.data(dataframe, id = "id", time = "time", observed, covariates)
 }
 \arguments{
-\item{dataframe}{the data in the format of a data frame in R that contain a column of subject ID numbers 
+\item{dataframe}{either a ``ts'' class object of time series data for a single subject or 
+a data frame object of data for potentially multiple subjects that contain a column of subject ID numbers 
 (i.e., an ID variable), a column indicating subject-specific measurement occasions
 (i.e., a TIME variable), at least one column of observed values, and any number of covariates. 
 If the data are fit to a discrete-time model, the TIME variable should contain subject-specific sequences 
-of consecutively equally spaced numbers (e.g, 1, 2, 3, ...).
+of (subsets of) consecutively equally spaced numbers (e.g, 1, 2, 3, ...). That is, the
+program assumes that the input data.frame is equally spaced with potential missingness. If
+the measurement occasions for a subject are a subset of an arithmetic sequence but are not
+consecutive, NAs will be inserted automatically to create an equally spaced data set before
+estimation.
 If the data are fit to a continuous-time model, the TIME varibles can contain subject-specific increasing sequences 
 of irregularly spaced real numbers.  
 Missing values in the observed variables shoud be indicated by NA. Missing values in covariates are not allowed. 
 That is, missing values in the covariates, if there are any, should be imputed first.}
 
-\item{id}{a character string of the name of the ID variable in the data.}
+\item{id}{a character string of the name of the ID variable in the data. Optional for a ``ts'' class object.}
 
-\item{time}{a character string of the name of the TIME variable in the data.}
+\item{time}{a character string of the name of the TIME variable in the data. Optional for a ``ts'' class object.}
 
-\item{observed}{a vector of character strings of the names of the observed variables in the data.}
+\item{observed}{a vector of character strings of the names of the observed variables in the data. 
+Optional for a ``ts'' class object.}
 
-\item{covariates}{a vector of character strings of the names of the covariates in the data, which can be missing.}
+\item{covariates}{(optional) a vector of character strings of the names of the covariates in the data,
+which can be missing.}
 }
 \description{
 Create a list of data for parameter estimation (cooking dynr) using \code{\link{dynr.cook}}
 }
 \examples{
 data(EMGsim)
-dd <- dynr.data(EMGsim, id='id', time='time', observed='EMG', covariates='self')
+dd <- dynr.data(EMGsim, id = 'id', time = 'time', observed = 'EMG', covariates = 'self')
+
+z <- ts(matrix(rnorm(300), 100, 3), start = c(1961, 1), frequency = 12)
+dz <- dynr.data(z)
 }
 

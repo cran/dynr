@@ -4,6 +4,8 @@
 \name{dynrRecipe-class}
 \alias{$,dynrRecipe-method}
 \alias{dynrRecipe-class}
+\alias{print,dynrRecipe-method}
+\alias{show,dynrRecipe-method}
 \title{The dynrRecipe Class}
 \description{
 The dynrRecipe Class

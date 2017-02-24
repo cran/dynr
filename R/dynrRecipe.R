@@ -15,6 +15,8 @@
 ##' 
 ##' @aliases
 ##' $,dynrRecipe-method
+##' print,dynrRecipe-method
+##' show,dynrRecipe-method
 ##' 
 ##' @details
 ##' This is an internal class structure.  You should not use it directly.
@@ -119,7 +121,9 @@ setClass(Class = "dynrRegimes",
            paramnames = "character",
            values = "matrix",
            params = "matrix",
-           covariates = "character"),
+           covariates = "character",
+           deviation = "logical",
+           refRow = "numeric"),
          contains = "dynrRecipe"
 )
 
@@ -188,18 +192,31 @@ setClass(Class = "dynrTrans",
 )
 
 setMethod("initialize", "dynrRecipe",
-          function(.Object, x){
-            for(i in names(x)){
+		function(.Object, x){
+			for(i in names(x)){
 				slot(.Object, name=i, check = TRUE) <- x[[i]]
 			}
 			return(.Object)
-          }
+		}
 )
 
 setMethod("$", "dynrRecipe",
-          function(x, name){slot(x, name)}
+		function(x, name){slot(x, name)}
 )
 
+printRecipeOrModel <- function(x, ...){
+	for(aslot in slotNames(x)){
+		if( !(aslot %in% c("c.string", "startval", "paramnames")) ){
+			cat(" $", aslot, "\n", sep="")
+			print(slot(x, aslot))
+			cat("\n")
+		}
+	}
+	return(invisible(x))
+}
+
+setMethod("print", "dynrRecipe", printRecipeOrModel)
+setMethod("show", "dynrRecipe", function(object){printRecipeOrModel(object)})
 
 
 #------------------------------------------------------------------------------
@@ -217,7 +234,7 @@ setMethod("$", "dynrRecipe",
 ##' printex,dynrInitial-method
 ##' printex,dynrRegimes-method
 ##' 
-##' @param object The dynr object (recipe, model, cooked, model).
+##' @param object The dynr object (recipe, model, or cooked model).
 ##' @param ParameterAs The parameter values or names to plot. The underscores in parameter names are 
 ##' saved for use of subscripts.  Greek letters can be specified as corresponding LaTeX symbols without ##' backslashes (e.g., "lambda") and printed as greek letters.
 ##' @param printDyn logical. Whether or not to print the dynamic model. The default is TRUE.
@@ -907,6 +924,22 @@ setMethod("writeCcode", "dynrRegimes",
 		covariates_local <- object$covariates
 		numCovariates <- length(covariates_local)
 		numRegimes <- nrow(values)
+		deviation <- object$deviation
+		refRow <- object$refRow
+		
+		if(deviation){
+			if(nrow(values)!=0 && nrow(params)!=0){
+				# I need to look into this one
+				interceptSel <- seq(1, ncol(values), by=numCovariates+1)
+				intercept.values <- matrix(values[refRow, interceptSel], numRegimes, 1)
+				intercept.params <- matrix(params[refRow, interceptSel], numRegimes, 1)
+				values[refRow, interceptSel] <- 0
+				params[refRow, interceptSel] <- 0
+			}
+		} else {
+			intercept.values <- matrix(0, numRegimes, 1)
+			intercept.params <- matrix(0, numRegimes, 1)
+		}
 		
 		#Restructure values matrix for row-wise
 		if(nrow(values)!=0 && nrow(params)!=0){
@@ -923,6 +956,8 @@ setMethod("writeCcode", "dynrRegimes",
 			             createGslMatrix(numRegimes, numCovariates, "Gmatrix"),
 			             createGslVector(numRegimes, "Pvector"),
 			             createGslVector(numRegimes, "Presult"),
+			             createGslVector(numRegimes, "Pintercept"),
+			             setGslVectorElements(values=intercept.values, params=intercept.params, name="Pintercept"),
 			             sep="\n")
 			for(reg in 1L:numRegimes){
 				selRows <- rowBeginSeq[reg]:rowEndSeq[reg]
@@ -930,6 +965,7 @@ setMethod("writeCcode", "dynrRegimes",
 					setGslVectorElements(values=values[selRows, 1, drop=FALSE], params=params[selRows, 1, drop=FALSE], name="Pvector"),
 					setGslMatrixElements(values=values[selRows, -1, drop=FALSE], params=params[selRows, -1, drop=FALSE], name="Gmatrix"),
 					blasMV(FALSE, "1.0", "Gmatrix", "covariate_local", "1.0", "Pvector"),
+					"\tgsl_vector_add(Pvector, Pintercept);",
 					"\tmathfunction_softmax(Pvector, Presult);",
 					gslVector2Column("regime_switch_mat", reg-1, "Presult", 'row'),
 					"\tgsl_vector_set_zero(Pvector);",
@@ -940,6 +976,7 @@ setMethod("writeCcode", "dynrRegimes",
 				destroyGslMatrix("Gmatrix"),
 				destroyGslVector("Pvector"),
 				destroyGslVector("Presult"),
+				destroyGslVector("Pintercept"),
 				destroyGslVector("covariate_local"),
 				sep="\n")
 		} else if(nrow(values) != 0 && nrow(params) != 0 && numCovariates == 0){
@@ -947,11 +984,14 @@ setMethod("writeCcode", "dynrRegimes",
 			ret <- paste(ret,
 				createGslVector(numRegimes, "Pvector"),
 				createGslVector(numRegimes, "Presult"),
+				createGslVector(numRegimes, "Pintercept"),
+				setGslVectorElements(values=intercept.values, params=intercept.params, name="Pintercept"),
 				sep="\n")
 			for(reg in 1L:numRegimes){
 				selRows <- rowBeginSeq[reg]:rowEndSeq[reg]
 				ret <- paste(ret,
 					setGslVectorElements(values=values[selRows, 1, drop=FALSE], params=params[selRows, 1, drop=FALSE], name="Pvector"),
+					"\tgsl_vector_add(Pvector, Pintercept);",
 					"\tmathfunction_softmax(Pvector, Presult);",
 					gslVector2Column("regime_switch_mat", reg-1, "Presult", 'row'),
 					"\tgsl_vector_set_zero(Pvector);",
@@ -960,6 +1000,7 @@ setMethod("writeCcode", "dynrRegimes",
 			ret <- paste(ret,
 				destroyGslVector("Pvector"),
 				destroyGslVector("Presult"),
+				destroyGslVector("Pintercept"),
 				sep="\n")
 		} else {
 			ret <- paste(ret, "\tgsl_matrix_set_identity(regime_switch_mat);", sep="\n")
@@ -1278,6 +1319,16 @@ reverseldl <- function(values){
 		return(log(values))
 	} else if(any(is.na(values))){
 		warning("Avast ye swarthy dog! NA was passed to LDL. Unset bounds might be fine. Values might be wrong.")
+		# if it's a matrix and all the lower triangular parts are NA
+		# then we're just setting bounds on the variances
+		if(is.matrix(values) && all(is.na(values[lower.tri(values, diag=FALSE)]))){
+			values[lower.tri(values, diag=FALSE)] <- 0
+			values[upper.tri(values, diag=FALSE)] <- 0
+			mat <- dynr.ldl(values)
+			diag(mat) <- log(diag(mat))
+			mat[lower.tri(mat, diag=FALSE)] <- NA
+			return(mat)
+		}
 		return(values)
 	} else{
 		mat <- dynr.ldl(values)
@@ -1715,11 +1766,18 @@ replaceDiagZero <- function(x){
 ##' and (number of regimes x number of covariates) columns
 ##' @param params matrix of the same size as "values" consisting of the names of the parameters
 ##' @param covariates a vector of the names of the covariates to be used in the regime-switching functions
+##' @param deviation logical. Whether to use the deviation form or not.  See Details.
+##' @param refRow numeric. Which row is treated at the reference.  See Details.
 ##' 
 ##' @details
 ##' Note that each row of the transition probability matrix must sum to one. To accomplish this
 ##' fix at least one transition log odds parameter in each row of "values" (including its intercept 
 ##' and the regression slopes of all covariates) to 0.
+##' 
+##' When \code{deviation=FALSE}, the non-deviation form of the multinomial logistic regression is used. This form has a separate intercept term for each entry of the transition probability matrix (TPM). When \code{deviation=TRUE}, the deviation form of the multinomial logistic regression is used. This form has an intercept term that is common to each column of the TPM. The rows are then distinguished by their own individual deviations from the common intercept. The deviation form requires the same reference column constraint as the non-deviation form; however, the deviation form also requires one row to be indicated as the reference row (described below). By default the reference row is taken to be the same as the reference column.
+##' 
+##' The \code{refRow} argument determines which row is used as the intercept row. It is only
+##' used in the deviation form (i.e. \code{deviation=TRUE}). In the deviation form, one row of \code{values} and \code{params} contains the intercepts, other rows contain deviations from these intercepts. The \code{refRow} argument says which row contains the intercept terms. The default behavior for \code{refRow} is to be the same as the reference column.  The reference column is automatically detected. If we have problems detecting which is the reference column, then we provide error messages that are as helpful as we can make them.
 ##' 
 ##' @examples
 ##' #Regime-switching with no covariates (self-transition ID)
@@ -1734,7 +1792,7 @@ replaceDiagZero <- function(x){
 ##' b <- prep.regimes(values=matrix(c(0), 2, 8), 
 ##' params=matrix(c(paste0('p', 8:15), rep(0, 8)), 2, 8), 
 ##' covariates=c('x1', 'x2', 'x3'))
-prep.regimes <- function(values, params, covariates){
+prep.regimes <- function(values, params, covariates, deviation=FALSE, refRow){
 	if(!missing(values)){
 		values <- preProcessValues(values)
 	}
@@ -1748,11 +1806,14 @@ prep.regimes <- function(values, params, covariates){
 	if(missing(covariates)){
 		covariates <- character(0)
 	}
+	if(missing(refRow)){ # or other default values???
+		refRow <- numeric(0)
+	}
 	
 	if(!all(dim(values))==all(dim(params))) {
 	  stop('The dimensions of values and params matrices must match.')
-	}else if(!ncol(values )== nrow(values)*(length(covariates)+1)){
-	  stop(paste0("The matrix values should have ",nrow(values)*(length(covariates)+1), " columns."))
+	}else if(!ncol(values ) == nrow(values)*(length(covariates)+1)){
+	  stop(paste0("The matrix values should have ", nrow(values)*(length(covariates)+1), " columns."))
 	}
 	
 	sv <- extractValues(values, params)
@@ -1761,7 +1822,41 @@ prep.regimes <- function(values, params, covariates){
 	if(length(sv) > nrow(values)*(nrow(values)-1)*(length(covariates)+1)){
 		stop("Regime transition probability parameters not uniquely identified.\nFix all parameters in at least one cell of each row of the \ntransition probability matrix to be zero.")
 	}
-	x <- list(startval=sv, paramnames=pn, values=values, params=params, covariates=covariates)
+	# Do lots or processing and checking for the reference row and column
+	if(deviation == TRUE){
+		# if needed set refRow
+		if(length(refRow) == 0){
+			# check valid reference column (i.e. there is a single column as reference, no diagonal identification)
+			# detect reference column
+			colIsZero <- apply(params, 2, function(x){all(x %in% c('fixed'))})
+			blockSize <- length(covariates)+1
+			colIsZeroM <- matrix(colIsZero, nrow=blockSize, ncol=nrow(values))
+			refCol <- apply(colIsZeroM, 2, function(x){all(x==TRUE)})
+			if(sum(refCol) < 1){ #no single reference column found
+				stop(paste("No single reference column found. Identification along the diagonal is not allowed without you specifiy the reference row. Set e.g. refRow=1."))
+			}
+			if(sum(refCol) > 1){#found more than one reference column
+				stop(paste0("Found multiple possible reference columns: ", paste(which(refCol==1), collapse=', '), ".  Reconsider your model specification or just set e.g. refRow=1."))
+			}
+			# set reference row to reference column
+			refRow <- which(refCol)
+		}
+		if(length(refRow) > 1){
+			# error reference row must have length 0 or 1
+			stop(paste("refRow must being a single number. That is, have length 0 or 1, we found length", length(refRow)))
+		}
+		if(refRow > nrow(values)){
+			# error reference row must be between 1 and nrow(values)
+			stop(paste("refRow must be between 1 and", nrow(values), "but we found", refRow))
+		}
+	} else {
+		if(length(refRow) > 0){
+			#warning refRow is ignored when for the non-deviation case (deviation=FALSE)
+			warning("refRow argument is ignored in the non-deviation case (i.e. when deviation=FALSE)")
+		}
+	}
+	# Create the list for the object to return
+	x <- list(startval=sv, paramnames=pn, values=values, params=params, covariates=covariates, deviation=deviation, refRow=refRow)
 	return(new("dynrRegimes", x))
 }
 
@@ -1805,22 +1900,28 @@ autojacob<-function(formula,n){
 ##' #Not run: 
 ##' #For a full demo example that uses user-supplied analytic jacobian functions see:
 ##' #demo(RSNonlinearDiscrete, package="dynr")
-##' formula=list(list(x1~a1*x1,x2~a2*x2),list(x1~a1*x1+c12*(exp(abs(x2)))/(1+exp(abs(x2)))*x2,
-##'     x2~a2*x2+c21*(exp(abs(x1)))/(1+exp(abs(x1)))*x1))
-##' jacob=list(
+##' formula <- list(
+##'     list(
+##'       x1 ~ a1*x1,
+##'       x2 ~ a2*x2),
+##'     list(
+##'       x1 ~ a1*x1 + c12*(exp(abs(x2)))/(1+exp(abs(x2)))*x2,
+##'       x2 ~ a2*x2 + c21*(exp(abs(x1)))/(1+exp(abs(x1)))*x1)
+##'   )
+##' jacob <- list(
 ##'   list(x1~x1~a1,
 ##'       x2~x2~a2),
 ##'   list(x1~x1~a1,
 ##'       x1~x2~c12*(exp(abs(x2))/(exp(abs(x2))+1)+x2*sign(x2)*exp(abs(x2))/(1+exp(abs(x2))^2)),
 ##'       x2~x2~a2,
 ##'       x2~x1~c21*(exp(abs(x1))/(exp(abs(x1))+1)+x1*sign(x1)*exp(abs(x1))/(1+exp(abs(x1))^2))))
-##' dynm<-prep.formulaDynamics(formula=formula,startval=c(a1=.3,a2=.4,c12=-.5,c21=-.5),
-##' isContinuousTime=FALSE,jacobian=jacob)
+##' dynm <- prep.formulaDynamics(formula=formula, startval=c( a1=.3, a2=.4, c12=-.5, c21=-.5),
+##'                              isContinuousTime=FALSE, jacobian=jacob)
 ##' 
 ##' #For a full demo example that uses automatic jacobian functions see:
 ##' #demo(RSNonlinearODE , package="dynr")
-##' formula=list(prey~ a*prey - b*prey*predator, predator~ -c*predator + d*prey*predator)
-##' dynm<-prep.formulaDynamics(formula=formula,
+##' formula=list(prey ~ a*prey - b*prey*predator, predator ~ -c*predator + d*prey*predator)
+##' dynm <- prep.formulaDynamics(formula=formula,
 ##'                           startval=c(a = 2.1, c = 0.8, b = 1.9, d = 1.1),
 ##'                           isContinuousTime=TRUE)
 prep.formulaDynamics <- function(formula, startval, isContinuousTime=FALSE, jacobian){

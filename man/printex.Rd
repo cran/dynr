@@ -16,7 +16,7 @@ printex(object, ParameterAs, printDyn = TRUE, printMeas = TRUE,
   printInit = FALSE, printRS = FALSE, outFile, show, ...)
 }
 \arguments{
-\item{object}{The dynr object (recipe, model, cooked, model).}
+\item{object}{The dynr object (recipe, model, or cooked model).}
 
 \item{ParameterAs}{The parameter values or names to plot. The underscores in parameter names are 
 saved for use of subscripts.  Greek letters can be specified as corresponding LaTeX symbols without ##' backslashes (e.g., "lambda") and printed as greek letters.}

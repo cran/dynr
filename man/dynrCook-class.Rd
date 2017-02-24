@@ -2,9 +2,12 @@
 % Please edit documentation in R/dynrCook.R
 \docType{class}
 \name{dynrCook-class}
+\alias{$,dynrCook-method}
 \alias{dynrCook-class}
 \alias{dynrDebug-class}
 \alias{dynrOutall-class}
+\alias{print,dynrCook-method}
+\alias{show,dynrCook-method}
 \title{The dynrCook Class}
 \description{
 The dynrCook Class

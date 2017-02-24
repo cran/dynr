@@ -29,6 +29,16 @@ for parameter estimation.}
 \description{
 Create a dynrModel object for parameter estimation (cooking dynr) using \code{\link{dynr.cook}}
 }
+\details{
+A \code{dynrModel} is a collection of recipes.  The recipes are constructed with the functions \code{\link{prep.measurement}}, \code{\link{prep.noise}}, \code{\link{prep.formulaDynamics}}, \code{\link{prep.matrixDynamics}}, \code{\link{prep.initial}}, and in the case of regime-switching models \code{\link{prep.regimes}}.  Additionally, data must be prepared with \code{\link{dynr.data}} and added to the model.
+
+There are several available methods for \code{dynrModel} objects.
+\itemize{
+	\item The dollar sign ($) can be used to both get objects out of a model and to set pieces of the model.
+	\item \code{names} returns the names of the free parameters in a model.
+	\item \code{\link{printex}} prints LaTeX expressions for the equations that compose a model. The output can then be readily typeset for inclusion in presentations and papers.
+}
+}
 \examples{
 #rsmod <- dynr.model(dynamics=recDyn, measurement=recMeas, noise=recNoise, 
 #    initial=recIni, regimes=recReg, data=dd, outfile="RSLinearDiscrete.c")
