@@ -16,7 +16,7 @@ dynr.ggplot(res, dynrModel, style = 1, numSubjDemo = 2, idtoPlot = c(),
   mancolorPalette, manfillPalette, ...)
 }
 \arguments{
-\item{res}{The dynr object returned by dynr.cook().}
+\item{res}{The dynr object returned by \code{dynr.cook()}.}
 
 \item{dynrModel}{The model object to plot.}
 
@@ -24,7 +24,7 @@ dynr.ggplot(res, dynrModel, style = 1, numSubjDemo = 2, idtoPlot = c(),
 
 \item{numSubjDemo}{The number of subjects to be randomly selected for plotting.}
 
-\item{idtoPlot}{Values of the ID variable to plot}
+\item{idtoPlot}{Values of the ID variable to plot.}
 
 \item{names.state}{(optional) The names of the states to be plotted, which should be a subset of the state.names slot of the measurement slot of dynrModel.}
 
@@ -40,15 +40,15 @@ dynr.ggplot(res, dynrModel, style = 1, numSubjDemo = 2, idtoPlot = c(),
 
 \item{is.bw}{Is plot in black and white? The default is FALSE.}
 
-\item{colorPalette}{A palette function for lines and dots that when called with a single integer argument (the number of levels in the scale) returns the values that they should take.}
+\item{colorPalette}{A color palette for lines and dots. It is a value passed to the palette argument of the \code{ggplot2::scale_colour_brewer()} function. These palettes are in the R package \pkg{RColorBrewer}. One can find them by attaching the package with \code{library(RColorBrewer)} and run \code{display.brewer.all()}.}
 
-\item{fillPalette}{A palette function for blocks that when called with a single integer argument (the number of levels in the scale) returns the values that they should take.}
+\item{fillPalette}{A color palette for blocks. It is a value passed to the palette argument of the \code{ggplot2::scale_fill_brewer()} function. These palettes are in the package \pkg{RColorBrewer}. One can find them by attaching the package with \code{library(RColorBrewer)} and run \code{display.brewer.all()}.}
 
-\item{mancolorPalette}{(optional) A color palette for manually scaling the colors of lines and plots.}
+\item{mancolorPalette}{(optional) A color palette for manually scaling the colors of lines and dots. It is a vector passed to the values argument of the \code{ggplot2::scale_colour_manual} function.}
 
-\item{manfillPalette}{(optional) A color palette for manually scaling the colors of filled blocks.}
+\item{manfillPalette}{(optional) A color palette for manually scaling the colors of filled blocks. It is a vector passed to the values argument of the \code{ggplot2::scale_fill_manual} function.}
 
-\item{...}{A list of element name, element pairings that modify the existing ggplot2::ggplot ggplot2::theme. Consult the ggplot2::theme() function in the R package ggplot2::ggplot.}
+\item{...}{A list of elements that modify the existing ggplot theme. Consult the \code{ggplot2::theme()} function in the R package \pkg{ggplot2} for more options.}
 
 \item{object}{The same as res. The dynr object returned by dynr.cook().}
 }
@@ -56,6 +56,27 @@ dynr.ggplot(res, dynrModel, style = 1, numSubjDemo = 2, idtoPlot = c(),
 The ggplot of the smoothed state estimates and the most likely regimes
 }
 \details{
-The two functions \code{dynr.ggplot} and \code{autoplot} as identical aliases of one another.  The \code{autoplot} function is an S3 method from ggplot2 that allows many objects to be plotted in that package.
+This function outputs a ggplot layer that can be modified using functions in the package \pkg{ggplot2}. That is, one can add layers, scales, coords and facets with the "+" sign. In an example below, the \code{ggplot2::ylim()} function is used to modify the limits of the y axis of the graph. More details can be found on \url{http://ggplot2.org} and \url{http://ggplot2.tidyverse.org/reference/}.
+
+The two functions \code{dynr.ggplot()} and \code{autoplot()} as identical aliases of one another.  The \code{autoplot()} function is an S3 method from the package \pkg{ggplot2} that allows many objects to be plotted and works like the base \code{plot()} function.
+}
+\examples{
+# The following code is part of a demo example in dynr 
+# One can obtain the yum and rsmod objects needed below by running demo(RSLinearDiscreteYang).
+# p <- dynr.ggplot(yum, dynrModel = rsmod, style = 1,
+# 	names.regime = c("Deactivated", "Activated"),
+# 	title = "(B) Results from RS-AR model", numSubjDemo = 1,
+# 	shape.values = c(1),
+# 	text = element_text(size = 16),
+# 	is.bw = TRUE)
+# One can modify the limits on the y axis by using '+'
+# p + ggplot2::ylim(-2, 4)
+
+# autoplot(yum, dynrModel = rsmod, style = 1,
+#	names.regime = c("Deactivated", "Activated"),
+#	title = "(B) Results from RS-AR model", numSubjDemo = 1,
+#	shape.values = c(1),
+#	text = element_text(size = 16),
+#	is.bw = TRUE)
 }
 

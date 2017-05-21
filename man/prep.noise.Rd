@@ -9,17 +9,45 @@ prep.noise(values.latent, params.latent, values.observed, params.observed)
 \arguments{
 \item{values.latent}{a positive definite matrix or a list of positive definite matrices of the starting or fixed values of the process noise covariance structure(s) in one or more regimes. If only one matrix is specified for a regime-switching dynamic model, the process noise covariance structure stays the same across regimes. To ensure the matrix is positive definite in estimation, we apply LDL transformation to the matrix. Values are hence automatically adjusted for this purpose.}
 
-\item{params.latent}{a matrix or list of matrices of the parameter names that appear in the process noise covariance(s) in one or more regimes. If an element is 0 or "fixed", the corresponding element is fixed at the value specified in the values matrix; Otherwise, the corresponding element is to be estimated with the starting value specified in the values matrix. If only one matrix is specified for a regime-switching dynamic model, the process noise structure stays the same across regimes. If a list is specified, any two sets of the parameter names as in two matrices should be either the same or totally different to ensure proper parameter estimation.}
+\item{params.latent}{a matrix or list of matrices of the parameter names that appear in the process noise covariance(s) in one or more regimes. If an element is 0 or "fixed", the corresponding element is fixed at the value specified in the values matrix; Otherwise, the corresponding element is to be estimated with the starting value specified in the values matrix. If only one matrix is specified for a regime-switching dynamic model, the process noise structure stays the same across regimes. If a list is specified, any two sets of the parameter names as in two matrices should be either the same or totally different to ensure proper parameter estimation.  See Details.}
 
 \item{values.observed}{a positive definite matrix or a list of positive definite matrices of the starting or fixed values of the measurement error covariance structure(s) in one or more regimes. If only one matrix is specified for a regime-switching measurement model, the measurement noise covariance structure stays the same across regimes. To ensure the matrix is positive definite in estimation, we apply LDL transformation to the matrix. Values are hence automatically adjusted for this purpose.}
 
-\item{params.observed}{a matrix or list of matrices of the parameter names that appear in the measurement error covariance(s) in one or more regimes. If an element is 0 or "fixed", the corresponding element is fixed at the value specified in the values matrix; Otherwise, the corresponding element is to be estimated with the starting value specified in the values matrix. If only one matrix is specified for a regime-switching dynamic model, the process noise structure stays the same across regimes. If a list is specified, any two sets of the parameter names as in two matrices should be either the same or totally different to ensure proper parameter estimation.}
+\item{params.observed}{a matrix or list of matrices of the parameter names that appear in the measurement error covariance(s) in one or more regimes. If an element is 0 or "fixed", the corresponding element is fixed at the value specified in the values matrix; Otherwise, the corresponding element is to be estimated with the starting value specified in the values matrix. If only one matrix is specified for a regime-switching dynamic model, the process noise structure stays the same across regimes. If a list is specified, any two sets of the parameter names as in two matrices should be either the same or totally different to ensure proper parameter estimation.  See Details.}
 }
 \description{
 Recipe function for specifying the measurement error and process noise covariance structures
 }
+\details{
+The arguments of this function should generally be either matrices or lists of matrices.  Lists of matrices are used for regime-switching models with each list element corresponding to a regime.  Thus, a list of three matrices implies a three-regime model.  Single matrices are for non-regime-switching models.  Some checking is done to ensure that the number of regimes implied by one part of the model matches that implied by the others.  For example, the noise model (\code{prep.noise}) cannot suggest three regimes when the measurement model (\code{\link{prep.measurement}}) suggests two regimes. An exception to this rule is single-regime (i.e. non-regime-switching) components.  For instance, the noise model can have three regimes even though the measurement model implies one regime.  The single-regime components are simply assumed to be invariant across regimes.
+
+Care should be taken that the parameters names for the latent covariances do not overlap with the parameters in the observed covariances.  Likewise, the parameter names for the latent covariances in each regime should either be identical or completely distinct. Because the LDL' transformation is applied to the covariances, sharing a parameter across regimes may cause problems with the parameter estimation.
+
+Use $ to show specific arguments from a dynrNoise object (see examples).
+}
 \examples{
-prep.noise(values.latent=diag(c(0.8, 1)), params.latent=diag(c('fixed', "e_x")), 
+# Two latent variables and one observed variable in a one-regime model
+Noise<-prep.noise(values.latent=diag(c(0.8, 1)), params.latent=diag(c('fixed', "e_x")), 
 values.observed=diag(1.5,1), params.observed=diag("e_y", 1))
+# For matrices that can be import to latex:
+printex(Noise,show=TRUE)
+# If you want to check specific arguments you've specified, for example,
+# values for variance structure of the latent variables
+Noise$values.latent
+# [[1]]
+#     [,1] [,2]
+# [1,]  0.8    0
+# [2,]  0.0    1
+
+# Two latent variables and one observed variable in a two-regime model
+Noise<-prep.noise(values.latent=list(diag(c(0.8, 1)),diag(c(0.8, 1))), 
+params.latent=list(diag(c('fixed', "e_x1")),diag(c('fixed', "e_x2"))), 
+values.observed=list(diag(1.5,1),diag(0.5,1)), 
+params.observed=list(diag("e_y1", 1),diag("e_y2",1)))
+# If the error and noise structures are assumed to be the same across regimes,
+#  it is okay to use matrices instead of lists.
+}
+\seealso{
+\code{\link{printex}} to show the covariance matrices in latex.
 }
 

@@ -80,7 +80,8 @@ dynr.data <- function(dataframe, id = 'id', time = 'time', observed, covariates)
 		tstart=as.integer(tstart),
 		time=as.double(dataframe[,time]),
 		observed=data.frame(apply(dataframe[ , observed, drop=FALSE], 2, as.double)),
-		observed.names=observed
+		observed.names=observed,
+		original.data=dataframe
 		)
 	if(!missing(covariates)){
 	  data.object$covariate.names <- covariates
@@ -88,6 +89,13 @@ dynr.data <- function(dataframe, id = 'id', time = 'time', observed, covariates)
 		names(data.object$covariates) <- paste0("covar", 1:length(covariates))
 	}
 	names(data.object$observed) <- paste0("obs", 1:length(observed))
+	fid <- as.factor(data.object$id)
+	time.split <- split(data.object$time, fid)
+	diff.npos <- sapply(time.split, function(x){d <- diff(x); any(d <= 0)})
+	if(any(diff.npos)){
+		msg <- paste0("Time steps are not all increasing.\nFound zero or negative time differnces for IDs: ", paste(levels(fid)[diff.npos], sep="", collapse=", "))
+		stop(msg)
+	}
 	return(data.object)
 }
 

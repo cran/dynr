@@ -96,6 +96,24 @@ setReplaceMethod("$", "dynrModel",
 			value[lookup] <- value
 			names(value) <- x$param.names
 			slot(object=x, name=name, check = TRUE) <- x$transform$inv.tfun.full(value) #suppressWarnings(expr)
+			# Check that parameters are within the bounds and the bounds are in order
+			if(any(na.omit(x$ub < x$lb))){
+				warning("Some of the lower bounds are above the upper bounds. Bad, user!")
+			}
+			if(any(na.omit(x$ub < x$xstart))){
+				offenders <- names(which(na.omit(x$ub < x$xstart)))
+				offenders <- paste(offenders, collapse=', ')
+				msg <- paste0("I spy with my little eye an upper bound that is smaller than the starting value.\n",
+					"Offending parameter(s) named: ", offenders)
+				warning(msg)
+			}
+			if(any(na.omit(x$lb > x$xstart))){
+				offenders <- names(which(na.omit(x$lb > x$xstart)))
+				offenders <- paste(offenders, collapse=', ')
+				msg <- paste0("I spy with my little eye a lower bound that is larger than the starting value.\n",
+					"Offending parameter(s) named: ", offenders)
+				warning(msg)
+			}
 		} else if(name %in% c('dynamics', 'measurement', 'noise', 'initial', 'regimes', 'transform')) {
 			slot(object=x, name=name, check = TRUE) <- value
 		} else {
@@ -181,8 +199,8 @@ vecRegime <- function(object){
 			mat1 <- matrix(objValues[j, colSel], ncol=numCovariates+1)
 			mat2 <- matrix(c(1, covariates), ncol=1)
 			# drop zeros before multiplication
-			mat1 <- mat1[mat1 !=0 ]
 			mat2 <- mat2[mat1 !=0 ]
+			mat1 <- mat1[mat1 !=0 ]
 			a <- paste(mat1, mat2, sep="*")
 			a <- gsub("*1", "", a, fixed=TRUE)
 			b <- intercept.values[k, 1]
@@ -492,6 +510,16 @@ setMethod("printex", "dynrModel",
 ##' @details
 ##' A \code{dynrModel} is a collection of recipes.  The recipes are constructed with the functions \code{\link{prep.measurement}}, \code{\link{prep.noise}}, \code{\link{prep.formulaDynamics}}, \code{\link{prep.matrixDynamics}}, \code{\link{prep.initial}}, and in the case of regime-switching models \code{\link{prep.regimes}}.  Additionally, data must be prepared with \code{\link{dynr.data}} and added to the model.
 ##' 
+##' Several \emph{named} arguments can be passed into the \code{...} section of the function.  These include
+##' \itemize{
+##' 	\item Argument \code{regimes} is for a dynrRegimes object prepared with \code{\link{prep.regimes}}
+##' 	\item Argument \code{transform} is for a dynrTrans object prepared with \code{\link{prep.tfun}}.
+##' 	\item Argument \code{options} a list of options. Check the NLopt website \url{http://ab-initio.mit.edu/wiki/index.php/NLopt_Reference#Stopping_criteria} 
+##' for details. Available options for use with a dynrModel object 
+##' include xtol_rel, stopval, ftol_rel, ftol_abs, maxeval, and maxtime, 
+##' all of which control the termination conditions for parameter optimization. The examples below show a case where options were set.
+##' }
+##' 
 ##' There are several available methods for \code{dynrModel} objects.
 ##' \itemize{
 ##' 	\item The dollar sign ($) can be used to both get objects out of a model and to set pieces of the model.
@@ -502,6 +530,12 @@ setMethod("printex", "dynrModel",
 ##' @examples
 ##' #rsmod <- dynr.model(dynamics=recDyn, measurement=recMeas, noise=recNoise, 
 ##' #    initial=recIni, regimes=recReg, data=dd, outfile="RSLinearDiscrete.c")
+##'
+##' #Set relative tolerance on function value via 'options':
+##' #rsmod <- dynr.model(dynamics=recDyn, measurement=recMeas, noise=recNoise, 
+##' #    initial=recIni, regimes=recReg, data=dd, outfile="RSLinearDiscrete.c",
+##' #    options=list(ftol_rel=as.numeric(1e-6)))
+##' 
 ##' #For a full demo example, see:
 ##' #demo(RSLinearDiscrete , package="dynr")
 dynr.model <- function(dynamics, measurement, noise, initial, data, ..., outfile){

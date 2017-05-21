@@ -143,7 +143,10 @@ setClass(Class = "dynrInitial",
            values.inicov.inv.ldl = "list",
            params.inicov = "list",
            values.regimep = "matrix",
-           params.regimep = "matrix"),
+           params.regimep = "matrix",
+           covariates = "character",
+           deviation = "logical",
+           refRow = "numeric"),
          contains = "dynrRecipe"
 )
 
@@ -239,6 +242,8 @@ setMethod("show", "dynrRecipe", function(object){printRecipeOrModel(object)})
 ##' saved for use of subscripts.  Greek letters can be specified as corresponding LaTeX symbols without ##' backslashes (e.g., "lambda") and printed as greek letters.
 ##' @param printDyn logical. Whether or not to print the dynamic model. The default is TRUE.
 ##' @param printMeas logical. Whether or not to print the measurement model. The default is TRUE.
+
+
 ##' @param printInit logical. Whether or not to print the initial conditions. The default is FALSE.
 ##' @param printRS logical. Whether or not to print the regime-switching model. The default is FALSE.
 ##' @param outFile The name of the output tex file.
@@ -1020,47 +1025,137 @@ setMethod("writeCcode", "dynrInitial",
 		params.inicov <- object$params.inicov
 		values.regimep <- object$values.regimep
 		params.regimep <- object$params.regimep
+		covariates_local <- object$covariates
+		numCovariates <- length(covariates_local)
+		hasCovariates <- numCovariates > 0
+		deviation <- object$deviation
+		refRow <- object$refRow
 		
-		nregime <- max(length(values.inistate), length(values.inicov))
+		
+		nregime <- max(length(values.inistate), length(values.inicov), nrow(values.regimep))
+		if(nregime != 1 && length(values.inistate) == 1){
+			values.inistate <- rep(values.inistate, nregime)
+			params.inistate <- rep(params.inistate, nregime)
+		}
+		if(nregime != 1 && length(values.inicov) == 1){
+			values.inicov <- rep(values.inicov, nregime)
+			params.inicov <- rep(params.inicov, nregime)
+		}
 		someStatesNotZero <- sapply(values.inistate, function(x){!all(x == 0)})
 		someStatesNotZero2 <- sapply(params.inistate, function(x){!all(x == 0)})
 		someStatesNotZero <- someStatesNotZero | someStatesNotZero2
+		someStatesNotZero <- someStatesNotZero | rep(TRUE, length(someStatesNotZero))
 		
-		ret <- "void function_initial_condition(double *param, gsl_vector **co_variate, gsl_vector *pr_0, gsl_vector **eta_0, gsl_matrix **error_cov_0){\n"
-		ret <- paste(ret, setGslVectorElements(values.regimep,params.regimep, "pr_0"), sep="\n")
-		ret <- paste0(ret,"\tsize_t num_regime=pr_0->size;\n\tsize_t dim_latent_var=error_cov_0[0]->size1;")
+		numLatent <- nrow(values.inistate[[1]])
+		
+		values.etaIntercept <- lapply(values.inistate, function(x){x[,1, drop=FALSE]})
+		params.etaIntercept <- lapply(params.inistate, function(x){x[,1, drop=FALSE]})
+		values.covEffects <- lapply(values.inistate, function(x){x[,-1, drop=FALSE]})
+		params.covEffects <- lapply(params.inistate, function(x){x[,-1, drop=FALSE]})
+		
+		if(deviation){
+			if(nrow(values.regimep)!=0 && nrow(params.regimep)!=0){
+				values.regIntercept <- matrix(values.regimep[refRow, 1], nrow=nregime, 1)
+				params.regIntercept <- matrix(params.regimep[refRow, 1], nrow=nregime, 1)
+				values.regimep[refRow, 1] <- 0
+				params.regimep[refRow, 1] <- 0
+			}
+		} else {
+			values.regIntercept <- matrix(0, nregime, 1)
+			params.regIntercept <- matrix(0, nregime, 1)
+		}
+		
+		ret <- "void function_initial_condition(double *param, gsl_vector **co_variate, gsl_vector **pr_0, gsl_vector **eta_0, gsl_matrix **error_cov_0, size_t *index_sbj){\n\t"
+		ret <- paste0(ret, "\n", createGslVector(nregime, "Pvector"))
+		ret <- paste0(ret, createGslVector(nregime, "Pintercept"))
+		ret <- paste0(ret, createGslVector(nregime, "Padd"))
+		ret <- paste0(ret, createGslVector(nregime, "Preset"))
+		ret <- paste0(ret, setGslVectorElements(values.regimep[ , 1, drop=FALSE], params.regimep[ , 1, drop=FALSE], "Pvector"))
+		ret <- paste0(ret, setGslVectorElements(values.regIntercept, params.regIntercept, "Pintercept"))
+		ret <- paste0(ret, "\tgsl_vector_add(Padd, Pvector);\n")
+		ret <- paste0(ret, "\tgsl_vector_add(Padd, Pintercept);\n")
+		ret <- paste0(ret, "\tgsl_vector_add(Preset, Pvector);\n")
+		ret <- paste0(ret, "\tgsl_vector_add(Preset, Pintercept);\n")
+		
+		ret <- paste0(ret, createGslVector(numLatent, "eta_local"))
+		if(hasCovariates){
+			ret <- paste0(ret, createGslVector(numCovariates, "covariate_local"))
+			ret <- paste0(ret, createGslMatrix(numLatent, numCovariates, "Cmatrix"))
+			ret <- paste0(ret, createGslMatrix(nregime, numCovariates, "Pmatrix"))
+			ret <- paste0(ret, setGslMatrixElements(values=values.regimep[ , -1, drop=FALSE], params=params.regimep[ , -1, drop=FALSE], name="Pmatrix"))
+			ret <- paste0(ret, "\t\n")
+		}
+		
+		ret <- paste0(ret,"\tsize_t num_regime=pr_0[0]->size;\n\tsize_t dim_latent_var=error_cov_0[0]->size1;")
 		if (any(someStatesNotZero)){
 			ret <- paste0(ret,"\n\tsize_t num_sbj=(eta_0[0]->size)/(dim_latent_var);\n\tsize_t i;")
 		}
-		ret <- paste0(ret,"\n\tsize_t j;\n")
+		ret <- paste0(ret,"\n\tsize_t regime;\n")
 		
 		if(nregime > 1){
-			ret <- paste(ret, "\tswitch (regime) {\n", sep="\n")
-			for(reg in 1:nregime){
-				ret <- paste0(ret, paste0("\t\tcase ", reg-1, ":"), "\n")
-				ret <- paste0(ret, "\t\t\tfor(j=0;j<num_regime;j++){")
-				if (any(someStatesNotZero[reg])){
-					ret <- paste0(ret,"\n\t\t\t\tfor(i=0;i<num_sbj;i++){\n")
-					ret <- paste0(ret, setGslVectorElements(values=values.inistate[[reg]], params=params.inistate[[reg]], name='(eta_0)[j]', fill="i*dim_latent_var+", depth=5))
-					ret <- paste0(ret,"\t\t\t\t}") # close i loop
+			ret <- paste0(ret, "\tfor(regime=0; regime < num_regime; regime++){")
+			ret <- paste(ret, "\t\tswitch (regime) {\n", sep="\n")
+				for(reg in 1:nregime){
+					ret <- paste0(ret, paste0("\t\t\tcase ", reg-1, ":"), "\n")
+					if (any(someStatesNotZero[reg])){
+						ret <- paste0(ret,"\t\t\t\tfor(i=0; i < num_sbj; i++){\n")
+						ret <- paste0(ret, setGslVectorElements(values=values.etaIntercept[[reg]], params=params.etaIntercept[[reg]], name='eta_local', depth=5))
+						if(hasCovariates){
+							ret <- paste0(ret, gslVectorCopy("co_variate[index_sbj[i]]", "covariate_local", fromLoc=match(covariates_local, covariates), toLoc=1:numCovariates, depth=5))
+							ret <- paste0(ret, setGslMatrixElements(values=values.covEffects[[reg]], params=params.covEffects[[reg]], name="Cmatrix", depth=5))
+							ret <- paste0(ret, "\t\t\t\t", blasMV(FALSE, "1.0", "Cmatrix", "covariate_local", "1.0", "eta_local"))
+						}
+						ret <- paste0(ret, gslVectorCopy("eta_local", "eta_0[regime]", 1:numLatent, 1:numLatent, toFill="i*dim_latent_var+", depth=5))
+						ret <- paste0(ret, "\t\t\t\t\tgsl_vector_set_zero(eta_local);\n")
+						if(hasCovariates){
+							ret <- paste0(ret, "\t\t\t\t\tgsl_matrix_set_zero(Cmatrix);\n")
+						}
+						ret <- paste0(ret,"\t\t\t\t}") # close i loop
+					}
+					ret <- paste(ret, setGslMatrixElements(values.inicov[[reg]], params.inicov[[reg]], "(error_cov_0)[regime]", depth=4), sep="\n")
+					ret <- paste0(ret, "\t\t\t", "break;", "\n")
 				}
-				ret <- paste(ret, setGslMatrixElements(values.inicov[[reg]], params.inicov[[reg]], "(error_cov_0)[j]", depth=4), sep="\n")
-				ret <- paste0(ret, "\t\t\t}\n") # close j loop
-				ret <- paste0(ret, "\t\t", "break;", "\n")
-			}
-			ret <- paste0(ret, "\t", "}\n\n") # close case switch
+			ret <- paste0(ret, "\t\t", "}\n") # close case switch
+			ret <- paste0(ret, "\t}") # close regime loop
 		} else{
-			ret <- paste0(ret, "\tfor(j=0;j<num_regime;j++){")
+			ret <- paste0(ret, "\tfor(regime=0; regime < num_regime; regime++){")
 			if (any(someStatesNotZero)){
-				ret <- paste0(ret,"\n\t\tfor(i=0;i<num_sbj;i++){\n")
-				ret <- paste0(ret, setGslVectorElements(values=values.inistate[[1]], params=params.inistate[[1]], name='(eta_0)[j]', fill="i*dim_latent_var+", depth=3))
+				ret <- paste0(ret,"\n\t\tfor(i=0; i < num_sbj; i++){\n")
+				ret <- paste0(ret, setGslVectorElements(values=values.etaIntercept[[1]], params=params.etaIntercept[[1]], name='eta_local', depth=3))
+				if(hasCovariates){
+					ret <- paste0(ret, gslVectorCopy("co_variate[index_sbj[i]]", "covariate_local", fromLoc=match(covariates_local, covariates), toLoc=1:numCovariates, depth=3))
+					ret <- paste0(ret, setGslMatrixElements(values=values.covEffects[[1]], params=params.covEffects[[1]], name="Cmatrix", depth=3))
+					ret <- paste0(ret, "\t\t", blasMV(FALSE, "1.0", "Cmatrix", "covariate_local", "1.0", "eta_local"))
+				}
+				ret <- paste0(ret, gslVectorCopy("eta_local", "eta_0[regime]", 1:numLatent, 1:numLatent, toFill="i*dim_latent_var+", depth=3))
+				ret <- paste0(ret, "\t\t\tgsl_vector_set_zero(eta_local);\n")
+				if(hasCovariates){
+					ret <- paste0(ret, "\t\t\tgsl_matrix_set_zero(Cmatrix);\n")
+				}
 				ret <- paste0(ret,"\t\t}") # close i loop
 			}
-			ret <- paste(ret, setGslMatrixElements(values.inicov[[1]], params.inicov[[1]], "(error_cov_0)[j]"), sep="\n")
-			ret <- paste0(ret, "\t}") # close j loop
+			ret <- paste(ret, setGslMatrixElements(values.inicov[[1]], params.inicov[[1]], "(error_cov_0)[regime]"), sep="\n")
+			ret <- paste0(ret, "\t}") # close regime loop
 		}
 		
-		ret <- paste0(ret, "\n}\n") #Close function definition
+		ret <- paste0(ret,"\n\tfor(i=0; i < num_sbj; i++){\n")
+		if(hasCovariates){
+			ret <- paste0(ret, gslVectorCopy("co_variate[index_sbj[i]]", "covariate_local", fromLoc=match(covariates_local, covariates), toLoc=1:numCovariates, depth=2))
+			ret <- paste0(ret, "\t", blasMV(FALSE, "1.0", "Pmatrix", "covariate_local", "1.0", "Padd"))
+		}
+		ret <- paste0(ret, "\t\tmathfunction_softmax(Padd, pr_0[i]);\n")
+		if(hasCovariates){
+			ret <- paste0(ret, "\t\tgsl_vector_memcpy(Padd, Preset);\n")
+		}
+		ret <- paste0(ret,"\t}") # close i loop
+		
+		ret <- paste0(ret, "\n", destroyGslVector("Pvector"), destroyGslVector("Pintercept"), destroyGslVector("Padd"), destroyGslVector("Preset"), destroyGslVector("eta_local"))
+		if(hasCovariates){
+			ret <- paste0(ret, destroyGslVector("covariate_local"))
+			ret <- paste0(ret, destroyGslMatrix("Cmatrix"))
+			ret <- paste0(ret, destroyGslMatrix("Pmatrix"))
+		}
+		ret <- paste0(ret, "}\n") #Close function definition
 		object@c.string <- ret
 		
 		return(object)
@@ -1231,19 +1326,26 @@ makeldlchar<-function(param.data, values, params, reverse=FALSE){
   #   [2,] 0.6666667 1.299283
   params.numbers <- lapply(params, .exchangeNamesAndNumbers, param.data$param.name)
   values <- PopBackMatrix(values, params.numbers, paste0("vec[",param.data$param.number,"]"))
-  char<-character(0)
-  if (length(values)>0){
+  char <- character(0)
+  char.vec <- character(0)
+  if (length(values) > 0){
     for (i in 1:length(values)){
-      param.number=unique(params.numbers[[i]][which(params.numbers[[i]]!=0,arr.ind = TRUE)])
+      param.number <- unique(params.numbers[[i]][which(params.numbers[[i]]!=0,arr.ind = TRUE)])
       if (length(param.number)!=0){
-        vec.noise=paste0("vec[",paste0("c(",paste(param.number,collapse=","),")"),"]")
+        vec.noise <- paste0("vec[",paste0("c(",paste(param.number,collapse=","),")"),"]")
         vec.sub <- as.vector(values[[i]])
-        mat.index=sapply(param.number,function(x){min(which(params.numbers[[i]]==x))})
-        char.i=paste0(vec.noise,"=as.vector(", ifelse(reverse, 'reverseldl', 'transldl'), "(matrix(", paste0("c(",paste(vec.sub,collapse=","),")"),",ncol=",ncol(values[[i]]),")))[",
+        mat.index <- sapply(param.number,function(x){min(which(params.numbers[[i]]==x))})
+        char.i <- paste0(vec.noise,"=as.vector(", ifelse(reverse, 'reverseldl', 'transldl'), "(matrix(", paste0("c(",paste(vec.sub,collapse=","),")"),",ncol=",ncol(values[[i]]),")))[",
                       paste0("c(",paste(mat.index,collapse=","),")"),"]", ifelse(i!=length(values),"\n\t",""))
-        char=paste0(char, char.i)
+        char.vec <- c(char.vec, char.i)
       }
     }
+    # Check for and remove any duplicates
+    dups <- duplicated(gsub('\n\t$', '', char.vec))
+    if(length(char.vec) > 1 && any(dups)){
+      char.vec <- char.vec[!dups]
+    }
+    char <- paste0(char.vec, collapse='')
   }
   return(char)
 }
@@ -1318,18 +1420,30 @@ reverseldl <- function(values){
 	if(dim(values)[1]==1){
 		return(log(values))
 	} else if(any(is.na(values))){
-		warning("Avast ye swarthy dog! NA was passed to LDL. Unset bounds might be fine. Values might be wrong.")
-		# if it's a matrix and all the lower triangular parts are NA
-		# then we're just setting bounds on the variances
-		if(is.matrix(values) && all(is.na(values[lower.tri(values, diag=FALSE)]))){
+		if(all(is.na(values))){
+			# if everything is NA, then we're giving up.
+			return(values)
+		} else if(is.matrix(values) && all(is.na(values[lower.tri(values, diag=FALSE)]))){
+			# if it's a matrix and all the lower triangular parts are NA
+			# then we're just setting bounds on the variances
 			values[lower.tri(values, diag=FALSE)] <- 0
 			values[upper.tri(values, diag=FALSE)] <- 0
 			mat <- dynr.ldl(values)
 			diag(mat) <- log(diag(mat))
 			mat[lower.tri(mat, diag=FALSE)] <- NA
 			return(mat)
+		} else if(is.matrix(values) && all(is.na(diag(values))) && all( values[lower.tri(values, diag=FALSE)] == 0)){
+			# if the matrix has NA diagonal and is otherwise 0
+			# then leave it alone
+			return(values)
+		} else{
+			# only warn when values is
+			#  1 not all missing
+			#  2 not missing everywhere except the diagonal
+			#  3 not missing on the diagonal with zero everywhere else
+			warning("Avast ye swarthy dog! NA was passed to LDL in confusing way. Not doing LDL.")
+			return(values)
 		}
-		return(values)
 	} else{
 		mat <- dynr.ldl(values)
 		diag(mat) <- log(diag(mat))
@@ -1442,6 +1556,17 @@ coProcessValuesParams <- function(values=NULL, params=NULL, missingOK=FALSE){
 	}
 	if(length(values) != length(params)){
 		stop(paste0("Mismatch between values and params.  'values' argument indicates ", length(values), " regimes but 'params' argument indicates ", length(params), " regimes.  Get your mind right."))
+	}
+	vdim <- sapply(lapply(values, as.matrix), dim)
+	pdim <- sapply(lapply(params, as.matrix), dim)
+	if(length(vdim) > 0 && apply(vdim, 1, function(x) length(unique(x)) > 1)){
+		stop("Some of the 'values' list elements are not the same size as each other\nNot cool, Donny.")
+	}
+	if(length(pdim) > 0 && apply(pdim, 1, function(x) length(unique(x)) > 1)){
+		stop("Some of the 'params' list elements are not the same size as each other\nNo-go for launch.")
+	}
+	if(any(vdim != pdim)){
+		stop("'values' and 'params' are not all the same size.\nWalter Sobchak says you can't do that.")
 	}
 	return(list(values=values, params=params))
 }
@@ -1597,6 +1722,7 @@ prep.loadings <- function(map, params, idvar, exo.names=character(0)){
 ##' @param state.names  vector of names for the latent variables in the order they appear in the measurement model.
 ##' @param exo.names  (optional) vector of names for the exogenous variables in the order they appear in the measurement model.
 ##'
+##' @details
 ##' The values.* arguments give the starting and fixed values for their respective matrices.
 ##' The params.* arguments give the free parameter labels for their respective matrices.
 ##' Numbers can be used as labels.
@@ -1605,6 +1731,9 @@ prep.loadings <- function(map, params, idvar, exo.names=character(0)){
 ##' When a single matrix is given to values.*, that matrix is not regime-switching.
 ##' Correspondingly, when a list of length r is given, that matrix is regime-switching with values and params for the r regimes in the elements of the list.
 ##' 
+##' @seealso 
+##' Methods that can be used include: \code{\link{print}}, \code{\link{printex}}, \code{\link{show}} 
+##'
 ##' @examples
 ##' prep.measurement(diag(1, 5), diag("lambda", 5))
 ##' prep.measurement(matrix(1, 5, 5), diag(paste0("lambda_", 1:5)))
@@ -1677,13 +1806,40 @@ prep.measurement <- function(values.load, params.load=NULL, values.exo=NULL, par
 ##' Recipe function for specifying the measurement error and process noise covariance structures
 ##' 
 ##' @param values.latent a positive definite matrix or a list of positive definite matrices of the starting or fixed values of the process noise covariance structure(s) in one or more regimes. If only one matrix is specified for a regime-switching dynamic model, the process noise covariance structure stays the same across regimes. To ensure the matrix is positive definite in estimation, we apply LDL transformation to the matrix. Values are hence automatically adjusted for this purpose.
-##' @param params.latent a matrix or list of matrices of the parameter names that appear in the process noise covariance(s) in one or more regimes. If an element is 0 or "fixed", the corresponding element is fixed at the value specified in the values matrix; Otherwise, the corresponding element is to be estimated with the starting value specified in the values matrix. If only one matrix is specified for a regime-switching dynamic model, the process noise structure stays the same across regimes. If a list is specified, any two sets of the parameter names as in two matrices should be either the same or totally different to ensure proper parameter estimation.
+##' @param params.latent a matrix or list of matrices of the parameter names that appear in the process noise covariance(s) in one or more regimes. If an element is 0 or "fixed", the corresponding element is fixed at the value specified in the values matrix; Otherwise, the corresponding element is to be estimated with the starting value specified in the values matrix. If only one matrix is specified for a regime-switching dynamic model, the process noise structure stays the same across regimes. If a list is specified, any two sets of the parameter names as in two matrices should be either the same or totally different to ensure proper parameter estimation.  See Details.
 ##' @param values.observed a positive definite matrix or a list of positive definite matrices of the starting or fixed values of the measurement error covariance structure(s) in one or more regimes. If only one matrix is specified for a regime-switching measurement model, the measurement noise covariance structure stays the same across regimes. To ensure the matrix is positive definite in estimation, we apply LDL transformation to the matrix. Values are hence automatically adjusted for this purpose. 
-##' @param params.observed a matrix or list of matrices of the parameter names that appear in the measurement error covariance(s) in one or more regimes. If an element is 0 or "fixed", the corresponding element is fixed at the value specified in the values matrix; Otherwise, the corresponding element is to be estimated with the starting value specified in the values matrix. If only one matrix is specified for a regime-switching dynamic model, the process noise structure stays the same across regimes. If a list is specified, any two sets of the parameter names as in two matrices should be either the same or totally different to ensure proper parameter estimation.
+##' @param params.observed a matrix or list of matrices of the parameter names that appear in the measurement error covariance(s) in one or more regimes. If an element is 0 or "fixed", the corresponding element is fixed at the value specified in the values matrix; Otherwise, the corresponding element is to be estimated with the starting value specified in the values matrix. If only one matrix is specified for a regime-switching dynamic model, the process noise structure stays the same across regimes. If a list is specified, any two sets of the parameter names as in two matrices should be either the same or totally different to ensure proper parameter estimation.  See Details.
 ##' 
+##' @details
+##' The arguments of this function should generally be either matrices or lists of matrices.  Lists of matrices are used for regime-switching models with each list element corresponding to a regime.  Thus, a list of three matrices implies a three-regime model.  Single matrices are for non-regime-switching models.  Some checking is done to ensure that the number of regimes implied by one part of the model matches that implied by the others.  For example, the noise model (\code{prep.noise}) cannot suggest three regimes when the measurement model (\code{\link{prep.measurement}}) suggests two regimes. An exception to this rule is single-regime (i.e. non-regime-switching) components.  For instance, the noise model can have three regimes even though the measurement model implies one regime.  The single-regime components are simply assumed to be invariant across regimes.
+##' 
+##' Care should be taken that the parameters names for the latent covariances do not overlap with the parameters in the observed covariances.  Likewise, the parameter names for the latent covariances in each regime should either be identical or completely distinct. Because the LDL' transformation is applied to the covariances, sharing a parameter across regimes may cause problems with the parameter estimation.
+##' 
+##' Use $ to show specific arguments from a dynrNoise object (see examples).
+##' @seealso 
+##' \code{\link{printex}} to show the covariance matrices in latex.
+##'  
 ##' @examples 
-##' prep.noise(values.latent=diag(c(0.8, 1)), params.latent=diag(c('fixed', "e_x")), 
+##' # Two latent variables and one observed variable in a one-regime model
+##' Noise<-prep.noise(values.latent=diag(c(0.8, 1)), params.latent=diag(c('fixed', "e_x")), 
 ##' values.observed=diag(1.5,1), params.observed=diag("e_y", 1))
+##' # For matrices that can be import to latex:
+##' printex(Noise,show=TRUE)
+##' # If you want to check specific arguments you've specified, for example,
+##' # values for variance structure of the latent variables
+##' Noise$values.latent
+##' # [[1]]
+##' #     [,1] [,2]
+##' # [1,]  0.8    0
+##' # [2,]  0.0    1
+##' 
+##' # Two latent variables and one observed variable in a two-regime model
+##' Noise<-prep.noise(values.latent=list(diag(c(0.8, 1)),diag(c(0.8, 1))), 
+##' params.latent=list(diag(c('fixed', "e_x1")),diag(c('fixed', "e_x2"))), 
+##' values.observed=list(diag(1.5,1),diag(0.5,1)), 
+##' params.observed=list(diag("e_y1", 1),diag("e_y2",1)))
+##' # If the error and noise structures are assumed to be the same across regimes,
+##' #  it is okay to use matrices instead of lists.
 prep.noise <- function(values.latent, params.latent, values.observed, params.observed){
 	# Handle latent covariance
 	r <- coProcessValuesParams(values.latent, params.latent)
@@ -1779,19 +1935,61 @@ replaceDiagZero <- function(x){
 ##' The \code{refRow} argument determines which row is used as the intercept row. It is only
 ##' used in the deviation form (i.e. \code{deviation=TRUE}). In the deviation form, one row of \code{values} and \code{params} contains the intercepts, other rows contain deviations from these intercepts. The \code{refRow} argument says which row contains the intercept terms. The default behavior for \code{refRow} is to be the same as the reference column.  The reference column is automatically detected. If we have problems detecting which is the reference column, then we provide error messages that are as helpful as we can make them.
 ##' 
+##' @seealso 
+##' Methods that can be used include: \code{\link{print}}, \code{\link{printex}}, \code{\link{show}} 
+##'
 ##' @examples
-##' #Regime-switching with no covariates (self-transition ID)
+##' #Two-regime example with a covariate, x; log odds (LO) parameters represented in default form,
+##' #2nd regime set to be the reference regime (i.e., have LO parameters all set to 0).
+##' #The values and params matrices are of size 2 (numRegimes=2) x 4 (numRegimes*(numCovariates+1)).
+##' #    The LO of staying within the 1st regime (corresponding to the (1,1) entry in the
+##' #              2 x 2 transition probability matrix for the 2 regimes) = a_11 + d_11*x
+##' #    The log odds of switching from the 1st to the 2nd regime (the (1,2) entry in the
+##' #              transition probability matrix) = 0
+##' #    The log odds of moving from regime 2 to regime 1 (the (2,1) entry) = a_21 + d_21*x
+##' #    The log odds of staying within the 2nd regime (the (2,2) entry) = 0
+##' b <- prep.regimes(
+##' values=matrix(c(8,-1,rep(0,2),
+##'                -4,.1,rep(0,2)),
+##'              nrow=2, ncol=4, byrow=TRUE), 
+##' params=matrix(c("a_11","d_11x",rep("fixed",2),
+##'                "a_21","d_21x",rep("fixed",2)), 
+##'              nrow=2, ncol=4, byrow=TRUE), covariates=c("x"))
+##'  
+##' # Same example as above, but expressed in deviation form by specifying 'deviation = TRUE'
+##' #    The LO of staying within the 1st regime (corresponding to the (1,1) entry in the
+##' #              2 x 2 transition probability matrix for the 2 regimes) = a_21 + a_11 + d_11*x
+##' #    The log odds of switching from the 1st to the 2nd regime (the (1,2) entry in the
+##' #              transition probability matrix) = 0
+##' #    The log odds of moving from regime 2 to regime 1 (the (2,1) entry) = a_21 + d_21*x
+##' #    The log odds of staying within the 2nd regime (the (2,2) entry) = 0            
+##' b <- prep.regimes(
+##' values=matrix(c(8,-1,rep(0,2),
+##'                -4,.1,rep(0,2)),
+##'              nrow=2, ncol=4, byrow=TRUE), 
+##' params=matrix(c("a_11","d_11x",rep("fixed",2),
+##'                "a_21","d_21x",rep("fixed",2)), 
+##'              nrow=2, ncol=4, byrow=TRUE), covariates=c("x"), deviation = TRUE)
+##'              
+##' #An example of regime-switching with no covariates. The diagonal entries are fixed
+##' #at zero for identification purposes
 ##' b <- prep.regimes(values=matrix(0, 3, 3), 
-##' params=matrix(c(0, 'p1', 'p2', 'p3', 0, 'p4', 'p5', 'p6', 0), 3, 3))
+##' params=matrix(c('fixed', 'p12', 'p13', 
+##'                 'p21', 'fixed', 'p23', 
+##'                 'p31', 'p32', 'fixed'), 3, 3, byrow=TRUE))
 ##' 
-##' #Regime switching with no covariates (second regime ID)
+##' #An example of regime-switching with no covariates. The parameters for the second regime are 
+##' #  fixed at zero for identification purposes, making the second regime the reference regime.
 ##' b <- prep.regimes(values=matrix(0, 3, 3), 
-##' params=matrix(c('p1', 'p2', 'p3', 0, 0, 0, 'p4', 'p5', 'p6'), 3, 3))
+##' params=matrix(c('p11', 'fixed', 'p13',
+##'                 'p21', 'fixed', 'p23', 
+##'                 'p31', 'fixed', 'p33'), 3, 3, byrow=TRUE))
 ##' 
 ##' #2 regimes with three covariates
 ##' b <- prep.regimes(values=matrix(c(0), 2, 8), 
 ##' params=matrix(c(paste0('p', 8:15), rep(0, 8)), 2, 8), 
 ##' covariates=c('x1', 'x2', 'x3'))
+##' 
 prep.regimes <- function(values, params, covariates, deviation=FALSE, refRow){
 	if(!missing(values)){
 		values <- preProcessValues(values)
@@ -1896,7 +2094,48 @@ autojacob<-function(formula,n){
 ##' the latent variables. If this is not provided, dynr will invoke an automatic differentiation
 ##' procedure to compute the jacobian functions.
 ##' 
+##' @details
+##' This function defines the dynamic functions of the model either in discrete time or in continuous time.
+##' The function can be either linear or nonlinear, with free or fixed parameters, numerical constants, 
+##' covariates, and other mathematical functions that define the dynamics of the latent variables.
+##' Every latent variable in the model needs to be defined by a differential (for continuous time model), or
+##' difference (for discrete time model) equation.  The names of the latent variables should match 
+##' the specification in prep.measurement().
+##' For nonlinear models, the estimation algorithm generally needs a Jacobian matrix that contains
+##' elements of first differentiations of the dynamic functions with respect to the latent variables
+##' in the model. For most nonlinear models, such differentiations can be handled automatically by
+##' dynr. However, in some cases, such as when the absolute function (abs) is used, the automatic
+##' differentiation would fail and the user may need to provide his/her own Jacobian functions.
+##'
 ##' @examples
+##' # In this example, we present how to define the dynamics of a bivariate dual change score model
+##' # (McArdle, 2009). This is a linear model and the user does not need to worry about 
+##' # providing any jacobian function (the default). 
+##'  
+##' # We start by creating a list of formula that describes the model. In this model, we have four 
+##' # latent variables, which are "readLevel", "readSlope", "mathLevel", and "math Slope".  The right-
+##' # hand side of each formula gives a function that defines the dynamics.   
+##'  
+##'  formula =list(
+##'           list(readLevel~ (1+beta.read)*readLevel + readSlope + gamma.read*mathLevel,
+##'           readSlope~ readSlope,
+##'           mathLevel~ (1+beta.math)*mathLevel + mathSlope + gamma.math*readLevel, 
+##'           mathSlope~ mathSlope
+##'           ))
+##'
+##' # Then we use prep.formulaDynamics() to define the formula, starting value of the parameters in
+##' # the model, and state the model is in discrete time by setting isContinuousTime=FALSE.
+##'  
+##' dynm  <- prep.formulaDynamics(formula=formula,
+##'                              startval=c(beta.read = -.5, beta.math = -.5, 
+##'                                         gamma.read = .3, gamma.math = .03
+##'                              ), isContinuousTime=FALSE)
+##' 
+##' 
+##' # For a full demo example of regime switching nonlinear discrete time model, you
+##' # may refer to a tutorial on 
+##' # \url{https://quantdev.ssri.psu.edu/tutorials/dynr-rsnonlineardiscreteexample}
+##' 
 ##' #Not run: 
 ##' #For a full demo example that uses user-supplied analytic jacobian functions see:
 ##' #demo(RSNonlinearDiscrete, package="dynr")
@@ -1918,7 +2157,7 @@ autojacob<-function(formula,n){
 ##' dynm <- prep.formulaDynamics(formula=formula, startval=c( a1=.3, a2=.4, c12=-.5, c21=-.5),
 ##'                              isContinuousTime=FALSE, jacobian=jacob)
 ##' 
-##' #For a full demo example that uses automatic jacobian functions see:
+##' #For a full demo example that uses automatic jacobian functions (the default) see:
 ##' #demo(RSNonlinearODE , package="dynr")
 ##' formula=list(prey ~ a*prey - b*prey*predator, predator ~ -c*predator + d*prey*predator)
 ##' dynm <- prep.formulaDynamics(formula=formula,
@@ -1961,8 +2200,44 @@ prep.formulaDynamics <- function(formula, startval, isContinuousTime=FALSE, jaco
 ##' @param isContinuousTime logical. When TRUE, use a continuous time model.  When FALSE use a discrete time model.
 ##' 
 ##' @details
-##' The right-hand-side of the dynamic model consists of a vector of latent variables for the next time point in the discrete time case,
-##' and the vector of derivatives for the latent variables at the current time point in the continuous time case.
+##' A recipe function for specifying the deterministic portion of a set of linear dynamic functions as:
+##'
+##' Discrete-time model: eta(t+1) = int + dyn*eta(t) + exo*x(t), 
+##' where eta(t) is a vector of latent variables, x(t) is a vector of covariates,
+##' int, dyn, and exo are vectors and matrices specified via the arguments *.int, *.dyn, and *.exo. 
+##'
+##' Continuous-time model: d/dt eta(t) = int + dyn*eta(t) + exo*x(t), 
+##' where eta(t) is a vector of latent variables, x(t) is a vector of covariates,
+##' int, dyn, and exo are vectors and matrices specified via the arguments *.int, *.dyn, and *.exo.
+##' 
+##' The left-hand side of the dynamic model consists of a vector of latent variables for the next time point in the discrete-time case,
+##' and the vector of derivatives for the latent variables at the current time point in the continuous-time case.
+##'
+##' For models with regime-switching dynamic functions, the user will need to provide a list of the *.int, *.dyn, and *.exo arguments. 
+##' (when they are specified to take on values other than the default of zero vectors and matrices), or if a single set of vectors/matrices are provided, the same 
+##' vectors/matrices are assumed to hold across regimes.
+##' 
+##' \code{prep.matrixDynamics} serves as an alternative to \code{\link{prep.formulaDynamics}}.
+##' 
+##' @seealso 
+##' Methods that can be used include: \code{\link{print}}, \code{\link{show}} 
+##' 
+##' @examples 
+##' #Single-regime, continuous-time model. For further details run: 
+##' #demo(RSNonlinearDiscrete, package="dynr"))
+##' dynamics <- prep.matrixDynamics(
+##' values.dyn=matrix(c(0, -0.1, 1, -0.2), 2, 2),
+##' params.dyn=matrix(c('fixed', 'spring', 'fixed', 'friction'), 2, 2),
+##' isContinuousTime=TRUE)
+##' 
+##' #Two-regime, continuous-time model. For further details run: 
+##' #demo(RSNonlinearDiscrete, package="dynr"))
+##' dynamics <- prep.matrixDynamics(
+##' values.dyn=list(matrix(c(0, -0.1, 1, -0.2), 2, 2),
+##'                 matrix(c(0, -0.1, 1, 0), 2, 2)),
+##' params.dyn=list(matrix(c('fixed', 'spring', 'fixed', 'friction'), 2, 2),
+##'            matrix(c('fixed', 'spring', 'fixed', 'fixed'), 2, 2)),
+##' isContinuousTime=TRUE) 
 prep.matrixDynamics <- function(params.dyn=NULL, values.dyn, params.exo=NULL, values.exo=NULL, params.int=NULL, values.int=NULL, 
                                 covariates, isContinuousTime){
 	# Handle numerous cases of missing or non-list arguments
@@ -2130,22 +2405,109 @@ processFormula<-function(formula.list){
 
 ##' Recipe function for preparing the initial conditions for the model. 
 ##' 
-##' @param values.inistate a vector or list of vectors of the starting or fixed values of the initial state vector in one or more regimes.
-##' @param params.inistate a vector or list of vectors of the parameter names that appear in the initial state vector in one or more regimes. If an element is 0 or "fixed", the corresponding element is fixed at the value specified in the values vector; Otherwise, the corresponding element is to be estimated with the starting value specified in the values vector.
+##' @param values.inistate a vector or list of vectors of the starting or fixed values of the initial state vector in one or more regimes.  May also be a matrix or list of matrices.
+##' @param params.inistate a vector or list of vectors of the parameter names that appear in the initial state vector in one or more regimes. If an element is 0 or "fixed", the corresponding element is fixed at the value specified in the values vector; Otherwise, the corresponding element is to be estimated with the starting value specified in the values vector.  May also be a matrix or list of matrices.
 ##' @param values.inicov a positive definite matrix or a list of positive definite matrices of the starting or fixed values of the initial error covariance structure(s) in one or more regimes. If only one matrix is specified for a regime-switching dynamic model, the initial error covariance structure stays the same across regimes. To ensure the matrix is positive definite in estimation, we apply LDL transformation to the matrix. Values are hence automatically adjusted for this purpose.
 ##' @param params.inicov a matrix or list of matrices of the parameter names that appear in the initial error covariance(s) in one or more regimes. If an element is 0 or "fixed", the corresponding element is fixed at the value specified in the values matrix; Otherwise, the corresponding element is to be estimated with the starting value specified in the values matrix. If only one matrix is specified for a regime-switching dynamic model, the process noise structure stays the same across regimes. If a list is specified, any two sets of the parameter names as in two matrices should be either the same or totally different to ensure proper parameter estimation.
-##' @param values.regimep a vector of the starting or fixed values of the initial probabilities of being in each regime. By default, the initial probability of being in the first regime is fixed at 1.
-##' @param params.regimep a vector of the parameter indices of the initial probabilities of 
+##' @param values.regimep a vector/matrix of the starting or fixed values of the initial probabilities of being in each regime. By default, the initial probability of being in the first regime is fixed at 1.
+##' @param params.regimep a vector/matrix of the parameter indices of the initial probabilities of 
 ##' being in each regime. If an element is 0 or "fixed", the corresponding element is fixed at the value 
-##' specified in the "values" vector; Otherwise, the corresponding element is to be estimated 
-##' with the starting value specified in the values vector.
+##' specified in the "values" vector/matrix; Otherwise, the corresponding element is to be estimated 
+##' with the starting value specified in the values vector/matrix.
+##' @param covariates character vector of the names of the (person-level) covariates
+##' @param deviation logical. Whether to use the deviation form or not.  See Details.
+##' @param refRow numeric. Which row is treated at the reference.  See Details.
 ##' 
 ##' @details
 ##' The initial condition model includes specifications for the intial state vector, 
 ##' initial error covariance matrix, initial probabilities of 
 ##' being in each regime and all associated parameter specifications.
+##' The initial probabilities are specified in multinomial logistic regression form.  When there are no covariates, this implies multinomial logistic regression with intercepts only.
 ##' 
-prep.initial <- function(values.inistate, params.inistate, values.inicov, params.inicov, values.regimep=1, params.regimep=0){
+##' The structure of the initial state vector and the initial probability vector depends on the presence of covariates.  When there are no covariates these should be vectors, or equivalently single-column matrices.  When there are covariates they should have \eqn{c+1} columns for \eqn{c} covariates.  The number of rows should be the number of regimes for the initial regimes, or the number of latent states for the initial states.
+##' 
+##' When \code{deviation=FALSE}, the non-deviation form of the multinomial logistic regression is used. This form has a separate intercept term for each entry of the initial probability vector. When \code{deviation=TRUE}, the deviation form of the multinomial logistic regression is used. This form has an intercept term that is common to all rows of the initial probability vector. The rows are then distinguished by their own individual deviations from the common intercept. The deviation form requires the same reference row constraint as the non-deviation form (described below). By default the reference row is taken to be the row with all zero covariate effects.  Of course, if there are no covariates and the deviation form is desired, then the user must provide the reference row.
+##' 
+##' The \code{refRow} argument determines which row is used as the intercept row. It is only
+##' used in the deviation form (i.e. \code{deviation=TRUE}). In the deviation form, one row of \code{values.regimep} and \code{params.regimep} contains the intercepts, other rows contain deviations from these intercepts. The \code{refRow} argument says which row contains the intercept terms. The default behavior for \code{refRow} is to detect the reference row automatically based on which parameters are \code{fixed}.  If we have problems detecting which is the reference row, then we provide error messages that are as helpful as we can make them.
+##' 
+##' @seealso 
+##' Methods that can be used include: \code{\link{print}}, \code{\link{printex}}, \code{\link{show}} 
+##'
+##' @examples
+##' #### No-covariates
+##' # Single regime, no covariates
+##' # latent states are position and velocity
+##' # initial position is free and called 'inipos'
+##' # initial slope is fixed at 1
+##' # initial covariance is fixed to a diagonal matrix of 1s
+##' initialNoC <- prep.initial(
+##' 	values.inistate=c(0, 1),
+##' 	params.inistate=c('inipos', 'fixed'),
+##' 	values.inicov=diag(1, 2),
+##' 	params.inicov=diag('fixed', 2))
+##' 
+##' #### One covariate
+##' # Single regime, one covariate on the inital mean
+##' # latent states are position and velocity
+##' # initial covariance is fixed to a diagonal matrix of 1s
+##' # initial latent means have
+##' #   nrow = numLatentState, ncol = numCovariates + 1
+##' # initial position has free intercept and free u1 effect
+##' # initial slope is fixed at 1
+##' initialOneC <- prep.initial(
+##' 	values.inistate=matrix(
+##' 		c(0, .5,
+##' 		  1,  0), byrow=TRUE,
+##' 		nrow=2, ncol=2),
+##' 	params.inistate=matrix(
+##' 		c('iniPosInt', 'iniPosSlopeU1',
+##' 		'fixed', 'fixed'), byrow=TRUE,
+##' 		nrow=2, ncol=2),
+##' 	values.inicov=diag(1, 2),
+##' 	params.inicov=diag('fixed', 2),
+##' 	covariates='u1')
+##' 
+##' #### Regime-switching, one covariate
+##' # latent states are position and velocity
+##' # initial covariance is fixed to a diagonal matrix of 1s
+##' # initial latent means have
+##' #   nrow = numLatentState, ncol = numCovariates + 1
+##' # initial position has free intercept and free u1 effect
+##' # initial slope is fixed at 1
+##' # There are 3 regimes but the mean and covariance
+##' #   are not regime-switching.
+##' initialRSOneC <- prep.initial(
+##' 	values.regimep=matrix(
+##' 		c(1, 1,
+##' 		  0, 1,
+##' 		  0, 0), byrow=TRUE,
+##' 		nrow=3, ncol=2),
+##' 	params.regimep=matrix(
+##' 		c('r1int', 'r1slopeU1',
+##' 		  'r2int', 'r2slopeU2',
+##' 		  'fixed', 'fixed'), byrow=TRUE,
+##' 		nrow=3, ncol=2),
+##' 	values.inistate=matrix(
+##' 		c(0, .5,
+##' 		  1,  0), byrow=TRUE,
+##' 		nrow=2, ncol=2),
+##' 	params.inistate=matrix(
+##' 		c('iniPosInt', 'iniPosSlopeU1',
+##' 		'fixed', 'fixed'), byrow=TRUE,
+##' 		nrow=2, ncol=2),
+##' 	values.inicov=diag(1, 2),
+##' 	params.inicov=diag('fixed', 2),
+##' 	covariates='u1')
+##' 
+prep.initial <- function(values.inistate, params.inistate, values.inicov, params.inicov, values.regimep=1, params.regimep=0, covariates, deviation=FALSE, refRow){
+	if(missing(covariates)){
+		covariates <- character(0)
+	}
+	if(missing(refRow)){ # or other default values???
+		refRow <- numeric(0)
+	}
+	
 	# Handle initial state
 	r <- coProcessValuesParams(values.inistate, params.inistate)
 	values.inistate <- r$values
@@ -2157,26 +2519,84 @@ prep.initial <- function(values.inistate, params.inistate, values.inicov, params
 	params.inicov <- r$params
 	
 	if(length(values.inistate) != length(values.inicov)){
-		stop('Initial state and covariance imply a different number of regimes.')
+		stop('Initial state means and covariance matrix imply different numbers of regimes.')
 	}
+	
 	
 	values.inistate <- lapply(values.inistate, preProcessValues)
 	params.inistate <- lapply(params.inistate, preProcessParams)
+	
 	
 	values.inicov <- lapply(values.inicov, preProcessValues)
 	params.inicov <- lapply(params.inicov, preProcessParams)
 	values.inicov.inv.ldl <- lapply(values.inicov, replaceDiagZero)
 	values.inicov.inv.ldl <- lapply(values.inicov.inv.ldl, reverseldl)
 	
+	if(nrow(values.inistate[[1]]) != nrow(values.inicov[[1]])){
+		stop(paste0('Number of latent variables implied by initial state and initial covariance differ:\n',
+			'initial state (', nrow(values.inistate[[1]]), '), initial cov (', nrow(values.inicov[[1]]), ')'))
+	}
+	if(ncol(values.inistate[[1]]) != (length(covariates) + 1)){
+		stop(paste0('Incorrect dimensions for initial state\nFound ', paste0(dim(values.inistate[[1]]), collapse=' by '),
+			' but should be ', nrow(values.inistate[[1]]), ' by ', length(covariates) + 1, '\n',
+			'k by (c+1) for k=number of latent variables, c=number of covariates'))
+	}
+	
+	if(identical(values.regimep, 1) && identical(params.regimep, 0)){
+		values.regimep <- matrix(c(1, rep(0, length(covariates))), 1, length(covariates)+1)
+		params.regimep <- matrix(c(0), nrow(values.regimep), length(covariates)+1)
+	}
 	values.regimep <- preProcessValues(values.regimep)
 	params.regimep <- preProcessParams(params.regimep)
+	
+	if(ncol(values.regimep) != (length(covariates) + 1)){
+		stop(paste0('Incorrect dimensions for initial probabilities\nFound ', paste0(dim(values.regimep), collapse=' by '),
+			' but should be ', nrow(values.regimep), ' by ', length(covariates) + 1, '\n',
+			'r by (c+1) for r=number of regimes, c=number of covariates'))
+	}
+	
+	# Do lots or processing and checking for the reference row and column
+	if(deviation == TRUE){
+		# if needed set refRow
+		if(length(refRow) == 0){
+			# check valid reference row (i.e. there is a single row as reference)
+			# detect reference row
+			# reference row has all zero covariate effects
+			covAreZero <- apply(params.regimep, 1, function(x){all(x[-1] %in% c('fixed'))})
+			blockSize <- max(length(covariates), 1)
+			covAreZeroM <- matrix(covAreZero, nrow=blockSize, ncol=nrow(values.regimep))
+			refRow <- apply(covAreZeroM, 2, function(x){all(x==TRUE)})
+			if(sum(refRow) < 1){ #no single reference row found
+				stop(paste("No single reference row found. Initial probabilities might not be identified. Set e.g. refRow=1."))
+			}
+			if(sum(refRow) > 1){#found more than one reference row
+				stop(paste0("Found multiple possible reference rows: ", paste(which(refRow==1), collapse=', '), ".  Reconsider your model specification or just set e.g. refRow=1."))
+			}
+			# set reference row to reference column
+			refRow <- which(refRow)
+		}
+		if(length(refRow) > 1){
+			# error reference row must have length 0 or 1
+			stop(paste("'refRow' must being a single number. That is, have length 0 or 1, we found length", length(refRow)))
+		}
+		if(refRow > nrow(values.regimep)){
+			# error reference row must be between 1 and nrow(values)
+			stop(paste("'refRow' must be between 1 and", nrow(values.regimep), "but we found", refRow))
+		}
+	} else {
+		if(length(refRow) > 0){
+			#warning refRow is ignored when for the non-deviation case (deviation=FALSE)
+			warning("'refRow' argument is ignored in the non-deviation case (i.e. when deviation=FALSE)")
+		}
+	}
+	
 	
 	sv <- c(extractValues(values.inistate, params.inistate), extractValues(values.inicov.inv.ldl, params.inicov), extractValues(values.regimep, params.regimep))
 	pn <- c(extractParams(params.inistate), extractParams(params.inicov), extractParams(params.regimep))
 	sv <- extractValues(sv, pn)
 	pn <- extractParams(pn)
 	
-	x <- list(startval=sv, paramnames=pn, values.inistate=values.inistate, params.inistate=params.inistate, values.inicov=values.inicov, values.inicov.inv.ldl=values.inicov.inv.ldl, params.inicov=params.inicov, values.regimep=values.regimep, params.regimep=params.regimep)
+	x <- list(startval=sv, paramnames=pn, values.inistate=values.inistate, params.inistate=params.inistate, values.inicov=values.inicov, values.inicov.inv.ldl=values.inicov.inv.ldl, params.inicov=params.inicov, values.regimep=values.regimep, params.regimep=params.regimep, covariates=covariates, deviation=deviation, refRow=refRow)
 	return(new("dynrInitial", x))
 }
 
@@ -2198,7 +2618,25 @@ prep.initial <- function(values.inistate, params.inistate, values.inicov, params
 ##' to C functions and utilized during the optimization process. 
 ##' If transCcode = FALSE, the transformations are only performed at the end 
 ##' of the optimization process for standard error calculations but not 
-##' during the optimization process. 
+##' during the optimization process.
+##' ##' 
+##' @details
+##' Prepares a dynr recipe that specifies the names of the parameters that are 
+##' to be subjected to user-supplied transformation functions and the 
+##' corresponding transformation and reverse-transformation functions. 
+##' This can be very handy in fitting dynamic models in which certain parameters can 
+##' only take on permissible values in particular ranges (e.g., a parameter may 
+##' have to positive). Note that all variance-covariance parameters in the model
+##' are automatically subjected to transformation functions to ensure that
+##' the resultant covariance matrices are positive-definite. Thus, no additional
+##' transformation functions are needed for variance-covariance parameters.
+##' 
+##' @examples
+##' #Specifies a transformation recipe, r20, that subjects the parameters
+##' #'r10' and 'r20' to exponential transformation to ensure that they are positive.
+##' trans <-prep.tfun(formula.trans=list(r10~exp(r10), r20~exp(r20)),
+##'                   formula.inv=list(r10~log(r10),r20~log(r20)))
+##'
 prep.tfun<-function(formula.trans, formula.inv, transCcode = TRUE){
   #input: formula.trans=list(a~exp(a),b~b^2)
   #input: formula.inv=list(a~log(a),b~sqrt(b))
@@ -2403,12 +2841,30 @@ gslVector2Column <- function(matrix, index, vector, which){
 	}
 }
 
-gslcovariate.front<-function(selected, covariates){
-  ret <- createGslVector(length(selected), "covariate_local")
-  for (i in 1:length(selected)){
-    get <- paste0("gsl_vector_get(co_variate, ", which(covariates == selected[i])-1,")")
-    set <- paste0("\tgsl_vector_set(covariate_local, ", i-1,", ", get,");\n")
-    ret <- paste0(ret, set)
-  }
-  return(ret)
+# fromName character name of the from vector
+# toName character name of the to vector
+# fromLoc numeric integer vector of from locations
+# toLoc numeric integer vector of to locations
+# depth number of tabs to indent
+# create logical whether to create the toName before copying.  The vector created will be the length of toLoc
+gslVectorCopy <- function(fromName, toName, fromLoc, toLoc, fromFill="", toFill="", depth=1, create=FALSE){
+	# check lengths match
+	if(length(fromLoc) != length(toLoc)){stop("'fromLoc' and 'toLoc' lengths must match")}
+	tabs <- paste(rep('\t', depth), collapse="")
+	tabsm1 <- paste(rep('\t', depth-1), collapse="")
+	ret <- character(0)
+	if(create){
+		ret <- paste0(ret, tabsm1, createGslVector(length(toLoc), toName))
+	}
+	for(i in 1:length(toLoc)){
+		get <- paste0("gsl_vector_get(", fromName, ", ", fromFill, fromLoc[i]-1, ")")
+		set <- paste0(tabs, "gsl_vector_set(", toName, ", ", toFill, toLoc[i]-1, ", ", get, ");\n")
+		ret <- paste0(ret, set)
+	}
+	return(ret)
 }
+
+gslcovariate.front <- function(selected, covariates){
+	gslVectorCopy("co_variate", "covariate_local", match(selected, covariates), 1:length(selected), create=TRUE)
+}
+

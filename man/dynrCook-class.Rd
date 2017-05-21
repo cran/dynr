@@ -5,7 +5,6 @@
 \alias{$,dynrCook-method}
 \alias{dynrCook-class}
 \alias{dynrDebug-class}
-\alias{dynrOutall-class}
 \alias{print,dynrCook-method}
 \alias{show,dynrCook-method}
 \title{The dynrCook Class}

@@ -1,3 +1,3 @@
 
-gitVersion <- "v0.1.9-20-g3e048ce"
+gitVersion <- "v0.1.10-10-g6ab3df7"
 

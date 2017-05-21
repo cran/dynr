@@ -4,8 +4,9 @@
 \alias{dynr.cook}
 \title{Cook a dynr model to estimate its free parameters}
 \usage{
-dynr.cook(dynrModel, conf.level = 0.95, infile, verbose = TRUE,
-  weight_flag = FALSE, debug_flag = FALSE)
+dynr.cook(dynrModel, conf.level = 0.95, infile, optimization_flag = TRUE,
+  hessian_flag = TRUE, verbose = TRUE, weight_flag = FALSE,
+  debug_flag = FALSE)
 }
 \arguments{
 \item{dynrModel}{a dynr model compiled using dynr.model, consisting of recipes for submodels, 
@@ -16,6 +17,10 @@ the final parameter estimates (default is .95)}
 
 \item{infile}{(not required for models specified through the recipe functions) the name of a file 
 that has the C codes for all dynr submodels for those interested in specifying a model directly in C}
+
+\item{optimization_flag}{a flag (TRUE/FALSE) indicating whether optimization is to be done.}
+
+\item{hessian_flag}{a flag (TRUE/FALSE) indicating whether the Hessian matrix is to be calculated.}
 
 \item{verbose}{a flag (TRUE/FALSE) indicating whether more detailed intermediate output during the 
 estimation process should be printed}
@@ -32,11 +37,26 @@ Cook a dynr model to estimate its free parameters
 \details{
 Free parameter estimation uses the SLSQP routine from NLOPT.
 
-The typical items returned in the cooked model are the smoothed latent variable estimates only.  The time-varying latent variable means are called \code{eta_smooth_final}; the time-varying latent variable (co-)variances are called \code{error_cov_smooth_final}; and the time-varying smoothed probability of each regime is called \code{pr_t_given_T}.
+The typical items returned in the cooked model are the filtered and smoothed latent variable estimates. 
+\code{eta_smooth_final}, \code{error_cov_smooth_final} and \code{pr_t_given_T} are respectively 
+time-varying smoothed latent variable mean estimates, smoothed error covariance estimates, 
+and smoothed regime probability. 
+\code{eta_filtered}, \code{error_cov_filtered} and \code{pr_t_given_t} are respectively 
+time-varying filtered latent variable mean estimates, filtered error covariance matrix estimates, 
+and filtered regime probability.
 
-When \code{debug_flag} is TRUE, then additional information is passed into the cooked model. This information can get quite large, so it is not returned unless requested. The information gets large because these items often depend on the regime in addition to time. The updated latent states for each possible regime are in \code{eta_regime_t}; the updated latent covariances for each possible regime are in \code{error_cov_regime_t}; the latent residual (innovation vector) from each regime to each regime is stored in \code{innov_vec}; and the inverse of the updated latent covariance matrix from each regime to each regime is in \code{inverse_residual_cov}.
+When \code{debug_flag} is TRUE, then additional information is passed into the cooked model. 
+\code{eta_predicted}, \code{error_cov_predicted}, \code{innov_vec}, and \code{residual_cov} are respectively 
+time-varying predicted latent variable mean estimates, predicted error covariance matrix estimates, the error/residual estimates (innovation vector),
+and the error/residual covariance matrix estimates.
 }
 \examples{
 #fitted.model <- dynr.cook(model)
+}
+\seealso{
+\code{\link{autoplot}}, \code{\link{coef}}, \code{\link{confint}},
+\code{\link{deviance}}, \code{\link{initialize}}, \code{\link{logLik}},
+\code{\link{names}}, \code{\link{nobs}}, \code{\link{plot}}, \code{\link{print}},
+\code{\link{show}}, \code{\link{summary}}, \code{\link{vcov}}.
 }
 

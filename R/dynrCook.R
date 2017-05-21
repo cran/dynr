@@ -9,7 +9,6 @@
 ##' The dynrCook Class
 ##' 
 ##' @aliases
-##' dynrOutall-class
 ##' dynrDebug-class
 ##' $,dynrCook-method
 ##' print,dynrCook-method
@@ -29,10 +28,12 @@ setClass(Class =  "dynrCook",
            conf.intervals = "matrix",
            exitflag = "numeric", #
            neg.log.likelihood = "numeric", #
-           #Everything else from this point on
            pr_t_given_T  = "matrix", # RxT
            eta_smooth_final = "matrix", # LxT
            error_cov_smooth_final  = "array", # LxLxT
+           pr_t_given_t  = "matrix", # RxT
+           eta_filtered = "matrix", # LxT
+           error_cov_filtered = "array", # LxLxT
            run.times = "numeric",
            param.names = "character"
          )
@@ -53,6 +54,9 @@ setMethod("initialize", "dynrCook",
             .Object@pr_t_given_T <- x$pr_t_given_T
             .Object@eta_smooth_final <- x$eta_smooth_final
             .Object@error_cov_smooth_final <- x$error_cov_smooth_final
+            .Object@pr_t_given_t <- x$pr_t_given_t
+            .Object@eta_filtered <- x$eta_filtered
+            .Object@error_cov_filtered <- x$error_cov_filtered
             return(.Object)
           }
 )
@@ -68,14 +72,17 @@ setClass(Class =  "dynrDebug",
            conf.intervals = "matrix",
            exitflag = "numeric", #
            neg.log.likelihood = "numeric", #
-           eta_regime_t = "array", # LxRxT #
-           error_cov_regime_t  = "array", # LxLxRxT #
-           innov_vec  = "array", # LxRxRxT #
-           inverse_residual_cov = "array", # LxLxRxRxT #
            #Everything else from this point on
            pr_t_given_T  = "matrix", # RxT
            eta_smooth_final = "matrix", # LxT
            error_cov_smooth_final  = "array", # LxLxT
+           pr_t_given_t  = "matrix", # RxT
+           eta_filtered = "matrix", # LxT
+           error_cov_filtered = "array", # LxLxT
+           eta_predicted = "matrix", # LxT
+           error_cov_predicted = "array", # LxLxT
+           innov_vec = "matrix", # LxT
+           residual_cov = "array", # LxLxT
            run.times = "numeric",
            param.names = "character"
          ),
@@ -94,82 +101,16 @@ setMethod("initialize", "dynrDebug",
             .Object@conf.intervals <- x$conf.intervals
             .Object@exitflag <- x$exitflag
             .Object@neg.log.likelihood <- x$neg.log.likelihood
-            .Object@eta_regime_t <- x$eta_regime_t
-            .Object@error_cov_regime_t <- x$error_cov_regime_t
-            .Object@innov_vec <- x$innov_vec
-            .Object@inverse_residual_cov <- x$inverse_residual_cov
             .Object@pr_t_given_T <- x$pr_t_given_T
             .Object@eta_smooth_final <- x$eta_smooth_final
             .Object@error_cov_smooth_final <- x$error_cov_smooth_final
-            return(.Object)
-          }
-)
-
-
-setClass(Class =  "dynrOutall",
-         representation = representation(
-           fitted.parameters =  "numeric", #Can return
-           transformed.parameters =  "numeric", #
-           standard.errors =  "numeric",
-           bad.standard.errors = "logical",
-           hessian =  "matrix",
-           transformed.inv.hessian =  "matrix",
-           conf.intervals = "matrix",
-           exitflag = "numeric", #
-           neg.log.likelihood = "numeric", #
-           inverse.hessian = "matrix", 
-           eta_regime_t = "array", # LxRxT #
-           error_cov_regime_t  = "array", # LxLxRxT #
-           eta_regime_regime_t_pred= "array", # LxRxRxT #
-           error_cov_regime_regime_t_pred = "array", # LxLxRxRxT #
-           eta_regime_regime_t_plus_1 = "array", # LxRxRxT #
-           error_cov_regime_regime_t_plus_1 = "array", # LxLxRxRxT #
-           innov_vec  = "array", # LxRxRxT #
-           inverse_residual_cov = "array", # LxLxRxRxT #
-           #Everything else from this point on
-           pr_t_given_t   = "matrix", # RxT
-           pr_t_given_t_less_1 = "matrix", # RxT
-           pr_t_given_T  = "matrix", # RxT
-           transprob_given_T  = "array", # RxRxT
-           eta_regime_smooth = "array", # LxRxT
-           error_cov_regime_smooth  = "array", # LxLxRxT
-           eta_smooth_final = "matrix", # LxT
-           error_cov_smooth_final  = "array", # LxLxT
-           run.times = "numeric",
-           param.names = "character"
-         ),
-         contains = "dynrCook"
-)
-
-# Initialize method for the new() function
-setMethod("initialize", "dynrOutall",
-          function(.Object, x){
-            .Object@fitted.parameters <- x$fitted.parameters
-            .Object@transformed.parameters <- x$transformed.parameters
-            .Object@standard.errors <- x$standard.errors
-            .Object@bad.standard.errors <- x$bad.standard.errors
-            .Object@hessian <- x$hessian.matrix
-            .Object@transformed.inv.hessian <- x$transformed.inv.hessian
-            .Object@conf.intervals <- x$conf.intervals
-            .Object@exitflag <- x$exitflag
-            .Object@neg.log.likelihood <- x$neg.log.likelihood
-            .Object@inverse.hessian <- x$inverse.hessian.matrix
-            .Object@eta_regime_t <- x$eta_regime_t
-            .Object@error_cov_regime_t <- x$error_cov_regime_t
-            .Object@eta_regime_regime_t_pred <- x$eta_regime_regime_t_pred
-            .Object@error_cov_regime_regime_t_pred <- x$error_cov_regime_regime_t_pred
-            .Object@eta_regime_regime_t_plus_1 <- x$eta_regime_regime_t_plus_1
-            .Object@error_cov_regime_regime_t_plus_1 <- x$error_cov_regime_regime_t_plus_1
-            .Object@innov_vec <- x$innov_vec
-            .Object@inverse_residual_cov <- x$inverse_residual_cov
             .Object@pr_t_given_t <- x$pr_t_given_t
-            .Object@pr_t_given_t_less_1 <- x$pr_t_given_t_less_1
-            .Object@pr_t_given_T <- x$pr_t_given_T
-            .Object@transprob_given_T <- x$transprob_given_T
-            .Object@eta_regime_smooth <- x$eta_regime_smooth
-            .Object@error_cov_regime_smooth <- x$error_cov_regime_smooth
-            .Object@eta_smooth_final <- x$eta_smooth_final
-            .Object@error_cov_smooth_final <- x$error_cov_smooth_final
+            .Object@eta_filtered <- x$eta_filtered
+            .Object@error_cov_filtered <- x$error_cov_filtered
+            .Object@eta_predicted <- x$eta_predicted
+            .Object@error_cov_predicted <- x$error_cov_predicted
+            .Object@innov_vec <- x$innov_vec
+            .Object@residual_cov <- x$residual_cov
             return(.Object)
           }
 )
@@ -429,6 +370,8 @@ confint.dynrCook <- function(object, parm, level = 0.95, ...){
 ##' the final parameter estimates (default is .95)
 ##' @param infile (not required for models specified through the recipe functions) the name of a file 
 ##' that has the C codes for all dynr submodels for those interested in specifying a model directly in C
+##' @param optimization_flag a flag (TRUE/FALSE) indicating whether optimization is to be done.
+##' @param hessian_flag a flag (TRUE/FALSE) indicating whether the Hessian matrix is to be calculated.
 ##' @param verbose a flag (TRUE/FALSE) indicating whether more detailed intermediate output during the 
 ##' estimation process should be printed
 ##' @param weight_flag a flag (TRUE/FALSE) indicating whether the negative log likelihood function should 
@@ -439,14 +382,28 @@ confint.dynrCook <- function(object, parm, level = 0.95, ...){
 ##' @details
 ##' Free parameter estimation uses the SLSQP routine from NLOPT.
 ##' 
-##' The typical items returned in the cooked model are the smoothed latent variable estimates only.  The time-varying latent variable means are called \code{eta_smooth_final}; the time-varying latent variable (co-)variances are called \code{error_cov_smooth_final}; and the time-varying smoothed probability of each regime is called \code{pr_t_given_T}.
+##' The typical items returned in the cooked model are the filtered and smoothed latent variable estimates. 
+##' \code{eta_smooth_final}, \code{error_cov_smooth_final} and \code{pr_t_given_T} are respectively 
+##' time-varying smoothed latent variable mean estimates, smoothed error covariance estimates, 
+##' and smoothed regime probability. 
+##' \code{eta_filtered}, \code{error_cov_filtered} and \code{pr_t_given_t} are respectively 
+##' time-varying filtered latent variable mean estimates, filtered error covariance matrix estimates, 
+##' and filtered regime probability.
 ##' 
-##' When \code{debug_flag} is TRUE, then additional information is passed into the cooked model. This information can get quite large, so it is not returned unless requested. The information gets large because these items often depend on the regime in addition to time. The updated latent states for each possible regime are in \code{eta_regime_t}; the updated latent covariances for each possible regime are in \code{error_cov_regime_t}; the latent residual (innovation vector) from each regime to each regime is stored in \code{innov_vec}; and the inverse of the updated latent covariance matrix from each regime to each regime is in \code{inverse_residual_cov}.
+##' When \code{debug_flag} is TRUE, then additional information is passed into the cooked model. 
+##' \code{eta_predicted}, \code{error_cov_predicted}, \code{innov_vec}, and \code{residual_cov} are respectively 
+##' time-varying predicted latent variable mean estimates, predicted error covariance matrix estimates, the error/residual estimates (innovation vector),
+##' and the error/residual covariance matrix estimates.
+##' 
+##' @seealso 
+##' \code{\link{autoplot}}, \code{\link{coef}}, \code{\link{confint}},
+##' \code{\link{deviance}}, \code{\link{initialize}}, \code{\link{logLik}},
+##' \code{\link{names}}, \code{\link{nobs}}, \code{\link{plot}}, \code{\link{print}},
+##' \code{\link{show}}, \code{\link{summary}}, \code{\link{vcov}}.          
 ##' 
 ##' @examples
 ##' #fitted.model <- dynr.cook(model)
-dynr.cook <- function(dynrModel, conf.level=.95, infile, verbose=TRUE, weight_flag=FALSE, debug_flag=FALSE) {
-	outall_flag=FALSE#always set to FALSE except when a developer wants all the intermediate products from the C estimation algorithms.
+dynr.cook <- function(dynrModel, conf.level=.95, infile, optimization_flag=TRUE, hessian_flag = TRUE, verbose=TRUE, weight_flag=FALSE, debug_flag=FALSE) {
 	frontendStart <- Sys.time()
 	transformation=dynrModel@transform@tfun
 	data <- dynrModel$data
@@ -465,21 +422,27 @@ dynr.cook <- function(dynrModel, conf.level=.95, infile, verbose=TRUE, weight_fl
 	  compileLib=dynrModel@compileLib,
 	  verbose=dynrModel@verbose
 	)
+	libname <- model$libname
+	model$libname <- NULL
 	
 	model <- combineModelDataInformation(model, data)
 	model <- preProcessModel(model)
 	if(any(sapply(model$func_address, is.null.pointer))){
-	    warning("Found null pointer(s) in 'func_address' list. (Re-)compiling your functions...")
-	    if(missing(infile)){
-	      stop("Cannot compile your functions because 'infile' argument is missing.")
-	    }
-	    model$func_address=.C2funcaddress(isContinuousTime=model$isContinuousTime,infile=infile,verbose=verbose)
+		warning("Found null pointer(s) in 'func_address' list. (Re-)compiling your functions...")
+		if(missing(infile)){
+			stop("Cannot compile your functions because 'infile' argument is missing.")
+		}
+		addr <- .C2funcaddress(isContinuousTime=model$isContinuousTime, infile=infile, verbose=verbose)
+		model$func_address <- addr$address
+		libname <- addr$libname
 	}
 	gc()
 	backendStart <- Sys.time()
-	output <- .Call(.Backend, model, data, weight_flag, debug_flag, outall_flag, verbose, PACKAGE = "dynr")
+	output <- .Call(.Backend, model, data, weight_flag, debug_flag, optimization_flag, hessian_flag, verbose, PACKAGE = "dynr")
 	backendStop <- Sys.time()
-	#gc()#garbage collection
+	dyn.unload(libname) # unload the compiled library
+	# unlink(libname) # deletes the DLL
+	#gc() # garbage collection
 	cat('Original exit flag: ', output$exitflag, '\n')
 	# Check to make sure likelihood is not NaN.
 	output$exitflag <- ifelse(is.na(output$neg.log.likelihood), -6, output$exitflag)
@@ -517,9 +480,7 @@ dynr.cook <- function(dynrModel, conf.level=.95, infile, verbose=TRUE, weight_fl
 		}
 	}
 	names(output2$transformed.parameters) <- dynrModel$param.names
-	if (outall_flag){
-		obj <- new("dynrOutall", output2)
-	}else if(debug_flag){
+	if(debug_flag){
 		obj <- new("dynrDebug", output2)
 	}else{
 		obj <- new("dynrCook", output2)
@@ -659,6 +620,7 @@ is.positive.definite2 <- function(x) {
 	'-3'='Optimization failed. Ran out of memory.',
 	'-2'='Optimization halted. Lower bounds are bigger than upper bounds.',
 	'-1'='Optimization failed. Check starting values.',
+	'0'='Optimization has been turned off.',
 	'1'='Optimization terminated successfully',
 	'2'='Optimization stopped because objective function reached stopval',
 	'3'='Optimization terminated successfully: ftol_rel or ftol_abs was reached.',

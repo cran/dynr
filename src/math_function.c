@@ -19,15 +19,15 @@
  * @param inv_cov_matrix the covariance matrix
  * @return the negative log-likelihood
  */
-double mathfunction_negloglike_multivariate_normal_invcov(const gsl_vector *x, const gsl_matrix *inv_cov_matrix, const gsl_vector *y_non_miss,double det){
-    /*MYPRINT("x(0)=%f\n", gsl_vector_get(x, 0));*/
-    double result=0;
+double mathfunction_negloglike_multivariate_normal_invcov(const gsl_vector *x, const gsl_matrix *inv_cov_matrix, const gsl_vector *y_non_miss, double det){
+	/*MYPRINT("x(0)=%f\n", gsl_vector_get(x, 0));*/
+	double result = 0;
 	
 	/*handling missing data*/
-	double non_miss_size=mathfunction_sum_vector(y_non_miss);/*miss 0 not 1*/
+	double non_miss_size = mathfunction_sum_vector(y_non_miss); /*miss 0 not 1*/
 	if (non_miss_size!=0){
-		if (non_miss_size<y_non_miss->size){
-		    
+		if (non_miss_size < y_non_miss->size){
+			
 			gsl_matrix *inv_cov_mat_small=gsl_matrix_calloc(non_miss_size,non_miss_size);
 			gsl_matrix *cov_mat_small=gsl_matrix_calloc(non_miss_size,non_miss_size);
 			/*Matrix View: Not efficient
@@ -57,13 +57,13 @@ double mathfunction_negloglike_multivariate_normal_invcov(const gsl_vector *x, c
 			gsl_matrix_free(temp);
 			gsl_matrix_free(invtemp);
 			*/
-			size_t i,j=0; 	    
+			size_t i,j=0;
 			size_t i_s=0,j_s=0; 
 			for(i=0; i<y_non_miss->size; i++){
 				if(gsl_vector_get(y_non_miss, i)==1){
 					gsl_matrix_set(inv_cov_mat_small,i_s,i_s,gsl_matrix_get(inv_cov_matrix,i,i));
 					j_s=i_s+1;
-					for(j=i+1; j<y_non_miss->size; j++){				
+					for(j=i+1; j<y_non_miss->size; j++){
 						if(gsl_vector_get(y_non_miss, j)==1){
 							gsl_matrix_set(inv_cov_mat_small,i_s,j_s,gsl_matrix_get(inv_cov_matrix,i,j));
 							gsl_matrix_set(inv_cov_mat_small,j_s,i_s,gsl_matrix_get(inv_cov_matrix,i,j));
@@ -75,45 +75,45 @@ double mathfunction_negloglike_multivariate_normal_invcov(const gsl_vector *x, c
 			}
 			
 			det=1/mathfunction_inv_matrix_det(inv_cov_mat_small, cov_mat_small);
-
+			
 			gsl_matrix_free(inv_cov_mat_small);
 			gsl_matrix_free(cov_mat_small);
-
 		}
 		
-
-	    gsl_vector *y=gsl_vector_calloc(x->size); /* y will save inv_cov_matrix*x*/
-	    double mu; /* save result of x'*inv_cov_matrix*x*/
-    
-	    /** compute the log likelihood **/
-	    result=(non_miss_size/2.0)*log(M_PI*2);
-	    result+=log(det)/2.0;
-    
-	    gsl_blas_dgemv(CblasNoTrans, 1.0, inv_cov_matrix, x, 1.0, y); /* y=1*inv_cov_matrix*x+y*/
-	    gsl_blas_ddot(x, y, &mu);
-	    /*if(mu!=mu){
-	     MYPRINT("%f %f\n", gsl_vector_get(x, 0), gsl_vector_get(y, 0));
-	     }*/
-	    result+=mu/2.0;
-    
-	    /** free allocated space **/
-	    gsl_vector_free(y);
+		gsl_vector *y = gsl_vector_calloc(x->size); /* y will save inv_cov_matrix*x*/
+		double mu; /* save result of x'*inv_cov_matrix*x*/
 		
+		/** compute the log likelihood **/
+		result = (non_miss_size/2.0)*log(M_PI*2);
+		result += log(det)/2.0;
+		
+		gsl_blas_dgemv(CblasNoTrans, 1.0, inv_cov_matrix, x, 0.0, y); /* y=1*inv_cov_matrix*x+y*/
+		gsl_blas_ddot(x, y, &mu);
+		/*if(mu!=mu){
+			MYPRINT("%f %f\n", gsl_vector_get(x, 0), gsl_vector_get(y, 0));
+		}*/
+		result += mu/2.0;
+		
+		/** free allocated space **/
+		gsl_vector_free(y);
 	}
-    
-    /*if(1){
-     for(ri=0; ri<inv_cov_matrix->size1; ri++){
-     for(ci=0; ci<inv_cov_matrix->size2; ci++)
-     MYPRINT("%.3f ", gsl_matrix_get(inv_cov_matrix, ri, ci));
-     MYPRINT("\n");
-     }
-     MYPRINT("x: ( ");
-     for(ci=0; ci<x->size; ci++)
-     MYPRINT("%.3f ", gsl_vector_get(x, ci));
-     MYPRINT(")\n");
-     }*/
-    /*result=isfinite(result)?result:1e-4;*/
-    return result;
+	/* All-missing case starts */
+	
+	/*if(1){
+		for(ri=0; ri<inv_cov_matrix->size1; ri++){
+			for(ci=0; ci<inv_cov_matrix->size2; ci++){
+				MYPRINT("%.3f ", gsl_matrix_get(inv_cov_matrix, ri, ci));
+			}
+		MYPRINT("\n");
+		}
+		MYPRINT("x: ( ");
+		for(ci=0; ci<x->size; ci++)
+			MYPRINT("%.3f ", gsl_vector_get(x, ci));
+		MYPRINT(")\n");
+		}*/
+	
+	/*result=isfinite(result)?result:1e-4;*/
+	return result;
 }
 
 /**
@@ -130,7 +130,7 @@ void mathfunction_inv_matrix(const gsl_matrix *mat, gsl_matrix *inv_mat){
 	double det=0.0;
 	int info = gsl_linalg_cholesky_decomp(inv_mat);
 	det = mathfunction_cholesky_det(inv_mat);
-	if(fabs(det) < pow(1.0e-6, mat->size1) || info == GSL_EDOM){
+	if(fabs(det) < pow(1e-6, mat->size1) || info == GSL_EDOM){
 		/* MYPRINT("Singular or non-positive definite matrix found by mathfunction_inv_matrix_det().\n"); */
 		/*gsl_matrix_set_all(inv_mat, 10000.0);*/
 		gsl_matrix_memcpy(inv_mat, mat);
@@ -158,7 +158,7 @@ double mathfunction_inv_matrix_det(const gsl_matrix *mat, gsl_matrix *inv_mat){
 	double det=0.0;
 	int info = gsl_linalg_cholesky_decomp(inv_mat);
 	det = mathfunction_cholesky_det(inv_mat);
-	if(fabs(det) < pow(1.0e-6, mat->size1) || info == GSL_EDOM){
+	if(fabs(det) < pow(1e-6, mat->size1) || info == GSL_EDOM){
 		/* MYPRINT("Singular or non-positive definite matrix found by mathfunction_inv_matrix_det().\n"); */
 		/*gsl_matrix_set_all(inv_mat, 10000.0);*/
 		gsl_matrix_memcpy(inv_mat, mat);
@@ -196,7 +196,7 @@ double mathfunction_cholesky_det(const gsl_matrix *mat){
 void mathfunction_moore_penrose_pinv(gsl_matrix *inv_mat) {
     
 	/*a real number specifying the singular value threshold for inclusion.*/ 
-	const double rcond=1.0e-15;
+	const double rcond=1e-15;
 	
 	size_t i;
 	
@@ -496,4 +496,32 @@ double mathfunction_mat_trace(const gsl_matrix *mat){
     return tr;
 }
 
-
+/**
+ * This function collapses regime-dependent matrices by adding to a target matrix
+ * the following weighted score:
+ *	weight * [mat_add + (vec_former-vec_latter)(vec_former-vec_latter)']  (1)
+ * @param vec_former the vec_former in Equation (1)
+ * @param vec_latter the vec_latter in Equation (1)
+ * @param mat_add the mat_add in Equation (1)
+ * @param weight the weight in Equation (1) 
+ * @param mat_tomodify the target square matrix to be modified.
+ * @param temp_diff_vec temporary vector space holder for the difference.
+ * @param temp_diff_col temporary matrix column space holder for the difference.
+ * @param temp_modif_mat temporary matrix space holder.
+ */
+void mathfunction_collapse(gsl_vector *vec_former, gsl_vector *vec_latter,
+	gsl_matrix *mat_add, double weight, gsl_matrix *mat_tomodify,
+	gsl_vector *temp_diff_vec, gsl_matrix *temp_diff_col, gsl_matrix *temp_modif_mat){
+	/* compute vec_former-vec_latter*/
+	gsl_vector_memcpy(temp_diff_vec, vec_former);
+	gsl_vector_sub(temp_diff_vec, vec_latter);
+	gsl_matrix_set_col(temp_diff_col, 0, temp_diff_vec);
+	/* compute (vec_former-vec_latter)(vec_former-vec_latter)'*/
+	gsl_matrix_set_zero(temp_modif_mat);
+	gsl_blas_dgemm(CblasNoTrans,CblasTrans, 1.0, temp_diff_col, temp_diff_col, 0.0, temp_modif_mat);
+	/* compute W_{i,t}{P^{k}+(vec_former-vec_latter)(vec_former-vec_latter)'}*/
+	gsl_matrix_add(temp_modif_mat, mat_add);
+	gsl_matrix_scale(temp_modif_mat, weight);
+	/* compute sum_j{}*/
+	gsl_matrix_add(mat_tomodify, temp_modif_mat);
+}
