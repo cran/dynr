@@ -344,15 +344,58 @@ setMethod("printex", "dynrRegimes",
 )
 
 
+mvpaste <- function(m, v, a){
+	nr <- nrow(m)
+	res <- matrix("", nrow=nr, ncol=1)
+	for(r in 1:nr){
+		mat1 <- m[r,]
+		mat2 <- v
+		mat2 <- mat2[mat1 !=0 ]
+		mat1 <- mat1[mat1 !=0 ]
+		mat3 <- paste(mat1, mat2, sep="*")
+		mat3 <- gsub("*1", "", mat3, fixed=TRUE)
+		a <- a[ a != 0]
+		b <- implode(c(mat3, a), sep=" + ")
+		b[b %in% ""] <- "0"
+		res[r,] <- b
+	}
+	return(res)
+}
+
 setMethod("printex", "dynrInitial",
-          function(object, ParameterAs, 
-			  printDyn=TRUE, printMeas=TRUE, printInit=FALSE, printRS=FALSE, outFile, 
-			  show=TRUE, AsMatrix=TRUE){
-            lx0 <- lapply(object$values.inistate, .xtableMatrix, show)
-            lP0 <- lapply(object$values.inicov, .xtableMatrix, show)
-            lr0 <- .xtableMatrix(object$values.regimep, show)
-            return(invisible(list(initial.state=lx0, initial.covariance=lP0, initial.probability=lr0)))
-          }
+	function(object, ParameterAs, printDyn=TRUE, printMeas=TRUE,
+	printInit=FALSE, printRS=FALSE, outFile, show=TRUE, AsMatrix=TRUE){
+			values.regimep <- object$values.regimep
+			params.regimep <- object$params.regimep
+			numRegimes <- nrow(values.regimep)
+			covariates <- object$covariates
+			numCovariates <- length(covariates)
+			deviation <- object$deviation
+			refRow <- object$refRow
+			
+			nx <- nrow(object$values.inistate[[1]])
+			covar <- c("1", object$covariates)
+			x0val <- lapply(object$values.inistate, mvpaste, v=covar, a=rep("0", nx))
+			lx0 <- lapply(x0val, .xtableMatrix, show)
+			lP0 <- lapply(object$values.inicov, .xtableMatrix, show)
+			
+			if(deviation){
+				if(nrow(values.regimep)!=0 && nrow(params.regimep)!=0){
+					values.regIntercept <- matrix(values.regimep[refRow, 1], nrow=numRegimes, 1)
+					params.regIntercept <- matrix(params.regimep[refRow, 1], nrow=numRegimes, 1)
+					values.regimep[refRow, 1] <- 0
+					params.regimep[refRow, 1] <- 0
+				}
+			} else {
+				values.regIntercept <- matrix(0, numRegimes, 1)
+				params.regIntercept <- matrix(0, numRegimes, 1)
+			}
+			
+			p0val <- mvpaste(values.regimep, covar, values.regIntercept)
+			lr0 <- .xtableMatrix(p0val, show)
+			
+			return(invisible(list(initial.state=lx0, initial.covariance=lP0, initial.probability=lr0)))
+		}
 )
 
 
@@ -903,7 +946,7 @@ setMethod("writeCcode", "dynrDynamicsMatrix",
 					createGslVector(nrow(params.int[[1]]), "intVector"), "\n",
 					setGslVectorElements(values=values.int[[1]], params=params.int[[1]], name="intVector"), "\n",
 					"\tgsl_vector_add(", outName, ", intVector);", "\n",
-					destroyGslMatrix("intVector"))
+					destroyGslVector("intVector"))
 			}
 			
 			ret <- paste(ret, "}\n\n", sep="\n")
@@ -1511,7 +1554,7 @@ preProcessValues <- function(x){
 }
 
 preProcessParams <- function(x){
-	x[is.na(x)] <- 'fixed'
+	if (!is.null(x)) {x[is.na(x)] <- 'fixed'}
 	if(is.null(dim(x))){
 		numRow <- length(x)
 		numCol <- 1
@@ -1862,6 +1905,11 @@ prep.noise <- function(values.latent, params.latent, values.observed, params.obs
 	values.observed <- lapply(values.observed, preProcessValues)
 	params.observed <- lapply(params.observed, preProcessParams)
 	
+	lapply(values.latent, checkSymmetric, name="values.latent")
+	lapply(params.latent, checkSymmetric, name="params.latent")
+	lapply(values.observed, checkSymmetric, name="values.observed")
+	lapply(params.observed, checkSymmetric, name="params.observed")
+	
 	values.latent.inv.ldl <- lapply(values.latent, replaceDiagZero)
 	values.latent.inv.ldl <- lapply(values.latent.inv.ldl, reverseldl)
 	values.observed.inv.ldl <- lapply(values.observed, replaceDiagZero)
@@ -1879,6 +1927,14 @@ prep.noise <- function(values.latent, params.latent, values.observed, params.obs
 replaceDiagZero <- function(x){
 	diag(x)[diag(x) == 0] <- 1e-6
 	return(x)
+}
+
+checkSymmetric <- function(m, name="matrix"){
+	if(any(m != t(m))){
+		msg <- paste0("Covariance matrix called '", name, "' is not symmetric.\n",
+			"Covariance matrices should be equal to their transposes.")
+		stop(msg)
+	}
 }
 
 
@@ -2084,7 +2140,8 @@ autojacob<-function(formula,n){
 ##' @param formula a list of formulas specifying the drift or state-transition 
 ##' equations for the latent variables in continuous or discrete time, respectively.
 ##' @param startval a named vector of starting values of the parameters in the 
-##' formulas for estimation with parameter names as its name.
+##' formulas for estimation with parameter names as its name. If there are no free parameters in 
+##' the dynamic functions, leave startval as the default \code{numeric(0)}.
 ##' @param isContinuousTime if True, the left hand side of the formulas represent 
 ##' the first-order derivatives of the specified variables; if False, the left hand 
 ##' side of the formulas represent the current state of the specified variable while 
@@ -2163,8 +2220,8 @@ autojacob<-function(formula,n){
 ##' dynm <- prep.formulaDynamics(formula=formula,
 ##'                           startval=c(a = 2.1, c = 0.8, b = 1.9, d = 1.1),
 ##'                           isContinuousTime=TRUE)
-prep.formulaDynamics <- function(formula, startval, isContinuousTime=FALSE, jacobian){
-  if(is.null(names(startval))){
+prep.formulaDynamics <- function(formula, startval = numeric(0), isContinuousTime=FALSE, jacobian){
+  if(length(startval) > 0 & is.null(names(startval))){
     stop('startval must be a named vector')
   }
   # e.g. for the one-regime case, if we get a list of formula, make a list of lists of formula
@@ -2422,7 +2479,7 @@ processFormula<-function(formula.list){
 ##' The initial condition model includes specifications for the intial state vector, 
 ##' initial error covariance matrix, initial probabilities of 
 ##' being in each regime and all associated parameter specifications.
-##' The initial probabilities are specified in multinomial logistic regression form.  When there are no covariates, this implies multinomial logistic regression with intercepts only.
+##' The initial probabilities are specified in multinomial logistic regression form.  When there are no covariates, this implies multinomial logistic regression with intercepts only.  In particular, the initial probabilities not not specified on a 0 to 1 probability scale, but rather a negative infinity to positive infinity log odds scale.  Fixing an initial regime probability to zero does not mean zero probability.  It translates to a comparison log odds scale against which other regimes will be judged.
 ##' 
 ##' The structure of the initial state vector and the initial probability vector depends on the presence of covariates.  When there are no covariates these should be vectors, or equivalently single-column matrices.  When there are covariates they should have \eqn{c+1} columns for \eqn{c} covariates.  The number of rows should be the number of regimes for the initial regimes, or the number of latent states for the initial states.
 ##' 
@@ -2529,6 +2586,8 @@ prep.initial <- function(values.inistate, params.inistate, values.inicov, params
 	
 	values.inicov <- lapply(values.inicov, preProcessValues)
 	params.inicov <- lapply(params.inicov, preProcessParams)
+	lapply(values.inicov, checkSymmetric, name="values.inicov")
+	lapply(params.inicov, checkSymmetric, name="params.inicov")
 	values.inicov.inv.ldl <- lapply(values.inicov, replaceDiagZero)
 	values.inicov.inv.ldl <- lapply(values.inicov.inv.ldl, reverseldl)
 	

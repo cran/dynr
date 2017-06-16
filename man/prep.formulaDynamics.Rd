@@ -4,14 +4,16 @@
 \alias{prep.formulaDynamics}
 \title{Recipe function for specifying dynamic functions using formulas}
 \usage{
-prep.formulaDynamics(formula, startval, isContinuousTime = FALSE, jacobian)
+prep.formulaDynamics(formula, startval = numeric(0),
+  isContinuousTime = FALSE, jacobian)
 }
 \arguments{
 \item{formula}{a list of formulas specifying the drift or state-transition 
 equations for the latent variables in continuous or discrete time, respectively.}
 
 \item{startval}{a named vector of starting values of the parameters in the 
-formulas for estimation with parameter names as its name.}
+formulas for estimation with parameter names as its name. If there are no free parameters in 
+the dynamic functions, leave startval as the default \code{numeric(0)}.}
 
 \item{isContinuousTime}{if True, the left hand side of the formulas represent 
 the first-order derivatives of the specified variables; if False, the left hand 
