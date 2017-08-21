@@ -1,6 +1,6 @@
-c174497895576dada2ee3197b3a9e4e6 *DESCRIPTION
+760f9158e3e5e0f46bbd002118156ca6 *DESCRIPTION
 63822be6e50d82fbcea679a78483a762 *NAMESPACE
-833cded3d3e18b2a0f199caa2ad87c16 *NEWS
+8eab5ce5c19eb9c4233f988959914efe *NEWS
 68a221fe2f20ada2a9850e8a6299f87b *R/dataDoc.R
 b47d4464fd75a4a75026439997176646 *R/dynrCook.R
 482377b114e20dda5ecc163a6a7ae2f8 *R/dynrData.R
@@ -8,13 +8,13 @@ b47d4464fd75a4a75026439997176646 *R/dynrCook.R
 fe783e285813d71b8de8af397d89523c *R/dynrMi.R
 bfd01a0bb5eb6b4205ddca1c832cb2ad *R/dynrModel.R
 f7686fe04176f896d2fa1ad25d034255 *R/dynrModelInternal.R
-21c52c3d97c45f9777761f12e923b509 *R/dynrPlot.R
+907a3a909f655ec7692ec5ab0d25739b *R/dynrPlot.R
 03f0f1e1645e1757ee9b3c32191a9aa6 *R/dynrRecipe.R
-244f4e083ee4833b3b94e61220b5722d *R/dynrVersion.R
+73153c29872d3265f462b09b435a2224 *R/dynrVersion.R
 63a2b3d53811033e637db22f83164071 *R/dynrVersion.R.in
 7e78ea7d8c38c36ed4fd765b923e242d *README.md
-ea29da8f18b1296d35ae84e86d01b157 *build/partial.rdb
-32fba60ab374144bdc94241a7b65bc5d *build/vignette.rds
+ee93bf5377266d43799d68e67e1d64c1 *build/partial.rdb
+8143f2c954f91aaa1a509d8e3981cec4 *build/vignette.rds
 c3cded853a2388ad53569a7105d1c1e3 *cleanup
 2a2f823b986ebabb8a524a946d960277 *configure
 da1b0467b7dac8a307208102b79b3e02 *configure.win
@@ -37,7 +37,7 @@ b4af7c6b1c0b2c6a65a706a93e8a4980 *demo/RSNonlinearODE.R
 4bfee1682f34790cdaee856c7282686b *demo/initialExo.R
 00dc862f91d1815b3034765bd320bcb0 *inst/REFERENCES.bib
 1708170f7d77d66128de23e520d717ab *inst/doc/InstallationForUsers.Rnw
-bafc3a7f0099307a0e6432e741a49647 *inst/doc/InstallationForUsers.pdf
+a1469d9176c937f0161149359d90d0cc *inst/doc/InstallationForUsers.pdf
 2938c6f763caeabd096919464580de56 *inst/models/passing/LinearSDEWithChecks.R
 e71266093722618174b4751cab01078f *inst/models/slow/MCTest.R
 e730ecc8dcb0301136601b9553a25745 *inst/models/slow/RSODEmodel.c
@@ -101,7 +101,7 @@ e68e77c6a4fbfd0824da7c2ad3c20865 *man/prep.tfun.Rd
 9ad2e7f37645e8bae554f2727cb35826 *src/Makevars.win
 43f935651d16579dda9f5dc7cfd19a41 *src/adaodesolver.c
 e9f1df8271427e034532757fd7948218 *src/adaodesolver.h
-95b70c35980b5953bfba4642aa5cd5e1 *src/brekfis.c
+739f57177e0f0a7e4e2d83d929324d9a *src/brekfis.c
 4151b2b2307eb872912be85515f25138 *src/brekfis.h
 4ebba1b2bb844504801ad2b1241ffd6b *src/data_structure.h
 7ff8e0e77961fcb64c19fad638853773 *src/debug_onair.sh
@@ -112,7 +112,7 @@ c46261ee9047f43f539d7b42f888791b *src/debug_onmac.sh
 4d9fdae6f0f480cf787a54c81de70c7f *src/estimation.h
 7790845d51f3c908b28602e2d236e627 *src/general.c
 d2354e9c9e3c4aca45a68cb944e13f40 *src/glue.c
-5c037cec1605b6c42e55d120fd62a150 *src/mainR.c
+bb16bd76c93231e6ea426b82c0beab59 *src/mainR.c
 85a2174765401994b12d74867211b6d6 *src/mainR.h
 69427ffba500ac3da39fbfc454cdae3f *src/math_function.c
 1fd33555438c3f4d847b22be88002056 *src/math_function.h

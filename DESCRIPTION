@@ -1,5 +1,5 @@
 Package: dynr
-Date: 2017-06-16
+Date: 2017-08-21
 Title: Dynamic Modeling in R
 Authors@R: c(person("Lu", "Ou", role="aut", email="lzo114@psu.edu"),
     person(c("Michael", "D."), "Hunter", role=c("aut", "cre"), email="mhunter.ou@gmail.com"),
@@ -10,7 +10,7 @@ Author: Lu Ou [aut],
 Maintainer: Michael D. Hunter <mhunter.ou@gmail.com>
 Depends: R (>= 3.0.0), methods, ggplot2
 Imports: MASS, Matrix, numDeriv, xtable, latex2exp, grid, reshape2,
-        plyr, mice, magrittr
+        plyr, mice, magrittr, Rdpack
 Suggests: testthat, roxygen2 (>= 3.1)
 Description: Intensive longitudinal data have become increasingly prevalent in
     various scientific disciplines. Many such data sets are noisy, multivariate,
@@ -37,8 +37,8 @@ Collate: 'dynrData.R' 'dynrRecipe.R' 'dynrModelInternal.R'
         'dynrMi.R' 'dynrVersion.R' 'dataDoc.R'
 RdMacros: Rdpack
 Biarch: true
-Version: 0.1.11-2
+Version: 0.1.11-8
 RoxygenNote: 5.0.1
-Packaged: 2017-06-16 18:24:01 UTC; mhunter1
+Packaged: 2017-08-21 05:16:51 UTC; mhunter
 Repository: CRAN
-Date/Publication: 2017-06-17 00:05:54 UTC
+Date/Publication: 2017-08-21 08:30:44 UTC
