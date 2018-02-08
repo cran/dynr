@@ -904,7 +904,7 @@ setMethod("writeCcode", "dynrDynamicsMatrix",
 				ifelse(hasIntercepts, paste0("\tgsl_vector_add(", outName, ", intVector);\n"), ""),
 				destroyGslMatrix("Amatrix"),
 				ifelse(hasCovariates, paste0(destroyGslMatrix("Bmatrix"), destroyGslVector("covariate_local")), ""),
-				ifelse(hasIntercepts, destroyGslMatrix("intVector"), ""),
+				ifelse(hasIntercepts, destroyGslVector("intVector"), ""),
 				"}\n\n", sep="\n")
 			
 			
@@ -1614,6 +1614,28 @@ coProcessValuesParams <- function(values=NULL, params=NULL, missingOK=FALSE){
 	return(list(values=values, params=params))
 }
 
+symmExtract <- function(x, s){if(s){x[lower.tri(x, diag=TRUE)]}else{x}}
+
+checkMultipleStart <- function(values, params, symmetric=FALSE){
+	if(is.list(values) & is.list(params)){
+		values <- unlist(lapply(values, symmExtract, s=symmetric))
+		params <- unlist(lapply(params, symmExtract, s=symmetric))
+	} else if(is.matrix(values) && is.matrix(params)){
+		values <- c(symmExtract(values, symmetric))
+		params <- c(symmExtract(params, symmetric))
+	} else if(xor(is.list(values), is.list(params)) || xor(is.matrix(values), is.matrix(params))){
+		stop("Invalid input to checkMultipleStart() function.\nMust be a pair of vectors, a pair of lists, or a pair of matrices.\nFound a mix.")
+	}
+	names(values) <- params
+	chparam <- setdiff(unique(params), c("0", "fixed")) # Don't check parameters labeled "fixed" or "0"
+	for(i in chparam){
+		ch <- values[ names(values) %in% i]
+		if(sum(!duplicated(ch)) > 1){
+			stop(paste0("Found multiple (transformed) start values for parameter '", i, "': ", paste(ch, sep="", collapse=", ")), call.=FALSE)
+		}
+	}
+}
+
 
 preProcessNames <- function(x,rnames=character(0),cnames=character(0)){
   rownames(x) <- rnames
@@ -1639,16 +1661,17 @@ extractParams <- function(p){
 	}
 }
 
-extractValues <- function(v, p){
+extractValues <- function(v, p, symmetric=FALSE){
 	if(is.list(v) && is.list(p) && length(v) == length(p) && length(v) > 0){
 		ret <- c()
 		for(i in 1:length(v)){
-			ret <- c(ret, extractValues(v[[i]], p[[i]]))
+			ret <- c(ret, extractValues(v[[i]], p[[i]], symmetric))
 		}
 		return(ret)
 	} else if(length(v) == 0){
 		return(numeric(0))
 	}else {
+		checkMultipleStart(v, p, symmetric)
 		return(v[extractWhichParams(p)])
 	}
 }
@@ -1656,7 +1679,6 @@ extractValues <- function(v, p){
 #------------------------------------------------------------------------------
 # Create recipe for function measurement
 
-# TODO add ability to use covariates in these functions
 
 #--------------------------------------
 # brief input version
@@ -1665,8 +1687,9 @@ extractValues <- function(v, p){
 ##'
 ##' @param map list giving how the latent variables map onto the observed variables
 ##' @param params parameter numbers
-##' @param idvar Names of the variables used to identify the factors
+##' @param idvar names of the variables used to identify the factors
 ##' @param exo.names names of the exogenous covariates
+##' @param intercept logical. Whether to include freely esimated intercepts
 ##' 
 ##' @details
 ##' The default pattern for 'idvar' is to fix the first factor loading 
@@ -1677,19 +1700,33 @@ extractValues <- function(v, p){
 ##' in the noise part of the model (e.g. \code{\link{prep.noise}}).
 ##'
 ##' This function does not have the full set of features possible in 
-##' the dynr package. In particular, it does not have regime-swtiching 
-##' factor loadings, any intercepts, or any covariates.  For complete 
-##' functionality use \code{\link{prep.measurement}}.
+##' the dynr package. In particular, it does not have any regime-swtiching.
+##' Covariates can be included with the \code{exo.names} argument, but
+##' all covariate effects are freely estimated and the starting values
+##' are all zero.  Likewise, intercepts can be included with the \code{intercept}
+##' logical argument, but all intercept terms are freely estimated with 
+##' zero as the starting value.
+##' For complete functionality use \code{\link{prep.measurement}}.
 ##' 
 ##' @examples
 ##' #Single factor model with one latent variable fixing first loading
-##' prep.loadings(list(eta1=paste0('y', 1:4)), paste0("lambda_",2:4))
+##' prep.loadings(list(eta1=paste0('y', 1:4)), paste0("lambda_", 2:4))
 ##'
 ##' #Single factor model with one latent variable fixing the fourth loading
-##' prep.loadings(list(eta1=paste0('y', 1:4)), paste0("lambda_",1:3), idvar='y4')
+##' prep.loadings(list(eta1=paste0('y', 1:4)), paste0("lambda_", 1:3), idvar='y4')
 ##' 
 ##' #Single factor model with one latent variable freeing all loadings
 ##' prep.loadings(list(eta1=paste0('y', 1:4)), paste0("lambda_", 1:4), idvar='eta1')
+##' 
+##' #Single factor model with one latent variable fixing first loading
+##' # and freely estimated intercept
+##' prep.loadings(list(eta1=paste0('y', 1:4)), paste0("lambda_", 2:4),
+##'  intercept=TRUE)
+##' 
+##' #Single factor model with one latent variable fixing first loading
+##' # and freely estimated covariate effects for u1 and u2
+##' prep.loadings(list(eta1=paste0('y', 1:4)), paste0("lambda_", 2:4),
+##'  exo.names=paste0('u', 1:2))
 ##' 
 ##' # Two factor model with simple structure
 ##' prep.loadings(list(eta1=paste0('y', 1:4), eta2=paste0('y', 5:7)), 
@@ -1702,7 +1739,7 @@ extractValues <- function(v, p){
 ##' #Two factor model with a cross loading
 ##' prep.loadings(list(eta1=paste0('y', 1:4), eta2=c('y5', 'y2', 'y6')), 
 ##' paste0("lambda_", c("21", "31", "41", "22", "62")))
-prep.loadings <- function(map, params, idvar, exo.names=character(0)){
+prep.loadings <- function(map, params, idvar, exo.names=character(0), intercept=FALSE){
 	if(missing(idvar)){
 		idvar <- sapply(map, '[', 1)
 	}
@@ -1711,6 +1748,7 @@ prep.loadings <- function(map, params, idvar, exo.names=character(0)){
 	
 	nx <- length(allVars)
 	ne <- length(map)
+	nu <- length(exo.names)
 	
 	if(!all(idvar %in% c(names(map), unlist(map)))){
 		stop("The 'idvar' must all be either in the names of the 'map' argument or parts of the 'map' argument.")
@@ -1736,11 +1774,28 @@ prep.loadings <- function(map, params, idvar, exo.names=character(0)){
 			}
 		}
 	}
+	
+	if(nu > 0){
+		exoVal <- matrix(0, nx, nu)
+		exoPar <- outer(paste0("b_", allVars), exo.names, paste0)
+	} else {
+		exoVal <- NULL
+		exoPar <- NULL
+	}
+	
+	if(intercept){
+		intVal <- matrix(0, nx, 1)
+		intPar <- matrix(paste0("int_", allVars), nx, 1)
+	}else{
+		intVal <- NULL
+		intPar <- NULL
+	}
+	
 	rownames(valuesMat) <- allVars
 	rownames(paramsMat) <- allVars
 	colnames(valuesMat) <- names(map)
 	colnames(paramsMat) <- names(map)
-	x <- prep.measurement(values.load=valuesMat, params.load=paramsMat,state.names=names(map),obs.names=allVars,exo.names=exo.names)
+	x <- prep.measurement(values.load=valuesMat, params.load=paramsMat, values.exo=exoVal, params.exo=exoPar, values.int=intVal, params.int=intPar, state.names=names(map), obs.names=allVars, exo.names=exo.names)
 	return(x)
 }
 
@@ -1834,6 +1889,7 @@ prep.measurement <- function(values.load, params.load=NULL, values.exo=NULL, par
 	pn <- c(extractParams(params.load), extractParams(params.exo), extractParams(params.int))
 	sv <- extractValues(sv, pn)
 	pn <- extractParams(pn)
+	
 	x <- list(startval=sv, paramnames=pn, values.load=values.load, params.load=params.load,
 		values.exo=values.exo, params.exo=params.exo, values.int=values.int, params.int=params.int,
 		obs.names=obs.names, state.names=state.names, exo.names=exo.names)
@@ -1915,7 +1971,7 @@ prep.noise <- function(values.latent, params.latent, values.observed, params.obs
 	values.observed.inv.ldl <- lapply(values.observed, replaceDiagZero)
 	values.observed.inv.ldl <- lapply(values.observed.inv.ldl, reverseldl)
 	
-	sv <- c(extractValues(values.latent.inv.ldl, params.latent), extractValues(values.observed.inv.ldl, params.observed))
+	sv <- c(extractValues(values.latent.inv.ldl, params.latent, symmetric=TRUE), extractValues(values.observed.inv.ldl, params.observed, symmetric=TRUE))
 	pn <- c(extractParams(params.latent), extractParams(params.observed))
 	sv <- extractValues(sv, pn)
 	pn <- extractParams(pn)
@@ -2328,7 +2384,15 @@ prep.matrixDynamics <- function(params.dyn=NULL, values.dyn, params.exo=NULL, va
 	params.exo <- lapply(params.exo, preProcessParams)
 	values.int <- lapply(values.int, preProcessValues)
 	params.int <- lapply(params.int, preProcessParams)
-
+	
+	# Check that the number of covariates implied by the 'covariates' arg is the same as that
+	#  implied by the number of columns in the 'values.exo' arg.
+	matCovariates <- lapply(lapply(values.exo, dim), "[[", 2)
+	argCovariates <- length(covariates)
+	if(!all(matCovariates == argCovariates)){
+		msg <- paste0("Mind your teaspoons and tablespoons.  The 'exo.values' argument says there are\n (", paste(matCovariates, collapse=", "), ") covariates, but the 'covariates' arg says there are (", argCovariates, ").")
+		stop(msg)
+	}
 	
 	sv <- c(extractValues(values.dyn, params.dyn), extractValues(values.exo, params.exo), extractValues(values.int, params.int))
 	pn <- c(extractParams(params.dyn), extractParams(params.exo), extractParams(params.int))
@@ -2650,7 +2714,7 @@ prep.initial <- function(values.inistate, params.inistate, values.inicov, params
 	}
 	
 	
-	sv <- c(extractValues(values.inistate, params.inistate), extractValues(values.inicov.inv.ldl, params.inicov), extractValues(values.regimep, params.regimep))
+	sv <- c(extractValues(values.inistate, params.inistate), extractValues(values.inicov.inv.ldl, params.inicov, symmetric=TRUE), extractValues(values.regimep, params.regimep))
 	pn <- c(extractParams(params.inistate), extractParams(params.inicov), extractParams(params.regimep))
 	sv <- extractValues(sv, pn)
 	pn <- extractParams(pn)

@@ -3,14 +3,14 @@
 \docType{data}
 \name{Oscillator}
 \alias{Oscillator}
-\title{Simulated time series data a damped linear oscillator}
+\title{Simulated time series data of a damped linear oscillator}
 \format{A data frame with 1000 rows and 5 variables}
 \usage{
 data(Oscillator)
 }
 \description{
 A dataset simulated using a damped linear oscillator model in continuous time
-with 1 observed indicators for identifying two latent factors (position and velocity).
+with 1 observed indicator for identifying two latent factors (position and velocity).
 The variables are as follows:
 }
 \details{

@@ -170,87 +170,53 @@ double brekfis(gsl_vector ** y, gsl_vector **co_variate, size_t total_time, doub
 				}
 				
 				
-				for(regime_k=0; regime_k<config->num_regime; regime_k++){/*to regime k*/
-					
-					if (t==(config->index_sbj)[sbj]){
+				for(regime_k=0; regime_k < config->num_regime; regime_k++){/*to regime k*/
+					bool isFirstTime = (t==(config->index_sbj)[sbj]);
+					if (isFirstTime){
 						for(col_index=0; col_index<config->dim_latent_var; col_index++){
 							gsl_vector_set(eta_j_t[regime_j], col_index, gsl_vector_get((init->eta_0)[regime_j], config->dim_latent_var*sbj+col_index));
 						}
 						gsl_matrix_memcpy(error_cov_j_t[regime_j], (init->error_cov_0)[regime_j]);
-						
-						/*MYPRINT("eta_S_at_a_previous_time_point:\n");
-						print_vector(eta_j_t[regime_j]);
-						MYPRINT("\n");
-						MYPRINT("error_cov_at_a_previous_time_point:\n");
-						print_matrix(error_cov_j_t[regime_j]);
-						MYPRINT("\n");*/
-						
-						innov_determinant = ext_kalmanfilter_updateonly(t, regime_k,
-							eta_j_t[regime_j], error_cov_j_t[regime_j],
-							y[t],co_variate[t],y_time,
-							param->eta_noise_cov, param->y_noise_cov,
-							param->func_param,
-							config->func_measure,
-							eta_jk_t_plus_1[regime_j][regime_k],
-							error_cov_jk_t_plus_1[regime_j][regime_k],
-							innov_v[regime_j][regime_k],
-							residual_cov[regime_j][regime_k]);/*inverse*/
-						
-						/*MYPRINT("From regime %lu to regime %lu:\n",regime_j,regime_k);
-						MYPRINT("\n");
-						MYPRINT("eta_jk:\n");
-						print_vector(eta_jk_t_plus_1[regime_j][regime_k]);
-						MYPRINT("\n");
-						MYPRINT("error_cov_jk:\n");
-						print_matrix(error_cov_jk_t_plus_1[regime_j][regime_k]);
-						MYPRINT("\n");
-						MYPRINT("innov_vector:\n");
-						print_vector(innov_v[regime_j][regime_k]);
-						MYPRINT("\n");
-						MYPRINT("inverse of the residual covariance:\n");
-						print_matrix(residual_cov[regime_j][regime_k]);
-						MYPRINT("\n");*/
-						
-					} else {
-						/*MYPRINT("eta_S_at_a_previous_time_point:\n");
-						print_vector(eta_j_t[regime_j]);
-						MYPRINT("\n");
-						MYPRINT("error_cov_at_a_previous_time_point:\n");
-						print_matrix(error_cov_j_t[regime_j]);
-						MYPRINT("\n");*/
-						
-						innov_determinant=ext_kalmanfilter(t, regime_k,
-							eta_j_t[regime_j], error_cov_j_t[regime_j],
-							y[t],co_variate[t],y_time,
-							param->eta_noise_cov, param->y_noise_cov,
-							param->func_param,config->num_func_param,
-							config->isContinuousTime,
-							config->func_measure,
-							config->func_dx_dt,
-							config->func_dP_dt,
-							config->func_dF_dx,
-							config->func_dynam,
-							config->func_jacob_dynam,
-							eta_jk_t_plus_1[regime_j][regime_k],
-							error_cov_jk_t_plus_1[regime_j][regime_k],
-							innov_v[regime_j][regime_k],
-							residual_cov[regime_j][regime_k]);/*inverse*/
-						
-						/*MYPRINT("From regime %lu to regime %lu:\n",regime_j,regime_k);
-						MYPRINT("\n");
-						MYPRINT("eta_jk:\n");
-						print_vector(eta_jk_t_plus_1[regime_j][regime_k]);
-						MYPRINT("\n");
-						MYPRINT("error_cov_jk:\n");
-						print_matrix(error_cov_jk_t_plus_1[regime_j][regime_k]);
-						MYPRINT("\n");
-						MYPRINT("innov_vector:\n");
-						print_vector(innov_v[regime_j][regime_k]);
-						MYPRINT("\n");
-						MYPRINT("inverse of the residual covariance:\n");
-						print_matrix(residual_cov[regime_j][regime_k]);
-						MYPRINT("\n");*/
 					}
+					
+					/*MYPRINT("eta_S_at_a_previous_time_point:\n");
+					print_vector(eta_j_t[regime_j]);
+					MYPRINT("\n");
+					MYPRINT("error_cov_at_a_previous_time_point:\n");
+					print_matrix(error_cov_j_t[regime_j]);
+					MYPRINT("\n");*/
+					
+					innov_determinant=ext_kalmanfilter(t, regime_k,
+						eta_j_t[regime_j], error_cov_j_t[regime_j],
+						y[t],co_variate[t],y_time,
+						param->eta_noise_cov, param->y_noise_cov,
+						param->func_param,config->num_func_param,
+						config->isContinuousTime,
+						config->func_measure,
+						config->func_dx_dt,
+						config->func_dP_dt,
+						config->func_dF_dx,
+						config->func_dynam,
+						config->func_jacob_dynam,
+						eta_jk_t_plus_1[regime_j][regime_k],
+						error_cov_jk_t_plus_1[regime_j][regime_k],
+						innov_v[regime_j][regime_k],
+						residual_cov[regime_j][regime_k], isFirstTime);/*inverse*/
+					
+					/*MYPRINT("From regime %lu to regime %lu:\n",regime_j,regime_k);
+					MYPRINT("\n");
+					MYPRINT("eta_jk:\n");
+					print_vector(eta_jk_t_plus_1[regime_j][regime_k]);
+					MYPRINT("\n");
+					MYPRINT("error_cov_jk:\n");
+					print_matrix(error_cov_jk_t_plus_1[regime_j][regime_k]);
+					MYPRINT("\n");
+					MYPRINT("innov_vector:\n");
+					print_vector(innov_v[regime_j][regime_k]);
+					MYPRINT("\n");
+					MYPRINT("inverse of the residual covariance:\n");
+					print_matrix(residual_cov[regime_j][regime_k]);
+					MYPRINT("\n");*/
 					
 					/*for(col_index=0; col_index<config->dim_latent_var; col_index++){
 						fprintf(eta_file, " %lf", gsl_vector_get(eta_jk_t_plus_1[0][0], col_index));
@@ -275,8 +241,7 @@ double brekfis(gsl_vector ** y, gsl_vector **co_variate, size_t total_time, doub
 					neg_log_p=mathfunction_negloglike_multivariate_normal_invcov(innov_v[regime_j][regime_k], residual_cov[regime_j][regime_k], y_non_miss, innov_determinant);
 					
 					/** compare the p with the (0.0001) and get the bigger one. We do not like probability that is too small. :)**/
-					double numNotMissingVars = mathfunction_sum_vector(y_non_miss);
-					double tooSmallNumber = numNotMissingVars < 30 ? pow(1e-10, numNotMissingVars):1e-300;
+					double tooSmallNumber = 1e-323;
 					double tryP = exp(-neg_log_p);
 					p = ( isfinite(tryP) && (tryP > tooSmallNumber) ) ? tryP:tooSmallNumber;
 					
@@ -330,7 +295,7 @@ double brekfis(gsl_vector ** y, gsl_vector **co_variate, size_t total_time, doub
             	}/*end of k*/
 
             /** step 2.4.1: check whether there is zero probability. If so, a small amount of value is added. Again we do not like too small and zero probability **/
-			double tooSmallRegimeNumber = config->num_regime < 30 ? pow(1e-10, config->num_regime):1e-300;
+			double tooSmallRegimeNumber = 1e-323;
 			if(gsl_vector_min(pr_t) < tooSmallRegimeNumber){
 				gsl_vector_add_constant(pr_t, tooSmallRegimeNumber);
 				mathfunction_vector_normalize(pr_t);
@@ -903,7 +868,7 @@ double EKimFilter(gsl_vector ** y, gsl_vector **co_variate, double *y_time, cons
 						config->func_jacob_dynam,
                         eta_regime_jk_pred[t][regime_j][regime_k], error_cov_regime_jk_pred[t][regime_j][regime_k],
                         eta_regime_jk_t_plus_1[t][regime_j][regime_k], error_cov_regime_jk_t_plus_1[t][regime_j][regime_k], 
-						innov_v[t][regime_j][regime_k], inv_residual_cov[t][regime_j][regime_k], residual_cov[t][regime_j][regime_k]);/*inverse*/
+						innov_v[t][regime_j][regime_k], inv_residual_cov[t][regime_j][regime_k], residual_cov[t][regime_j][regime_k]); /*inverse*/
 
                         /*MYPRINT("From regime %lu to regime %lu:\n",regime_j,regime_k);
                         MYPRINT("\n");
@@ -961,9 +926,8 @@ double EKimFilter(gsl_vector ** y, gsl_vector **co_variate, double *y_time, cons
 
                    /** Step 2.2: compute log value of function f(.), i.e., prediction error decomposition function **/
                    neg_log_p=mathfunction_negloglike_multivariate_normal_invcov(innov_v[t][regime_j][regime_k], inv_residual_cov[t][regime_j][regime_k], y_non_miss, innov_determinant);
-
-					double numNotMissingVars = mathfunction_sum_vector(y_non_miss);
-					double tooSmallNumber = numNotMissingVars < 30 ? pow(1e-10, numNotMissingVars):1e-300;
+					
+					double tooSmallNumber = 1e-323;
 					double tryP = exp(-neg_log_p);
 					p = ( isfinite(tryP) && (tryP > tooSmallNumber) ) ? tryP:tooSmallNumber;
 
@@ -1007,8 +971,7 @@ double EKimFilter(gsl_vector ** y, gsl_vector **co_variate, double *y_time, cons
             }/*end of k*/
 			
             /** step 2.4.1: check whether there is zero probability. If so, a small amount of value is added. Again we do not like too small and zero probability **/
-			double tooSmallRegimeNumber = config->num_regime < 30 ? pow(1e-10, config->num_regime):1e-300;
-	    	
+			double tooSmallRegimeNumber = 1e-323;
 			if(gsl_vector_min(pr_t[t]) < tooSmallRegimeNumber){
 	        	gsl_vector_add_constant(pr_t[t], tooSmallRegimeNumber);
 	        	mathfunction_vector_normalize(pr_t[t]);

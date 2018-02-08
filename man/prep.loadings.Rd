@@ -4,16 +4,19 @@
 \alias{prep.loadings}
 \title{Recipe function to quickly create factor loadings}
 \usage{
-prep.loadings(map, params, idvar, exo.names = character(0))
+prep.loadings(map, params, idvar, exo.names = character(0),
+  intercept = FALSE)
 }
 \arguments{
 \item{map}{list giving how the latent variables map onto the observed variables}
 
 \item{params}{parameter numbers}
 
-\item{idvar}{Names of the variables used to identify the factors}
+\item{idvar}{names of the variables used to identify the factors}
 
 \item{exo.names}{names of the exogenous covariates}
+
+\item{intercept}{logical. Whether to include freely esimated intercepts}
 }
 \description{
 Recipe function to quickly create factor loadings
@@ -27,19 +30,33 @@ will be freely estimated and you should fix the factor variances
 in the noise part of the model (e.g. \code{\link{prep.noise}}).
 
 This function does not have the full set of features possible in 
-the dynr package. In particular, it does not have regime-swtiching 
-factor loadings, any intercepts, or any covariates.  For complete 
-functionality use \code{\link{prep.measurement}}.
+the dynr package. In particular, it does not have any regime-swtiching.
+Covariates can be included with the \code{exo.names} argument, but
+all covariate effects are freely estimated and the starting values
+are all zero.  Likewise, intercepts can be included with the \code{intercept}
+logical argument, but all intercept terms are freely estimated with 
+zero as the starting value.
+For complete functionality use \code{\link{prep.measurement}}.
 }
 \examples{
 #Single factor model with one latent variable fixing first loading
-prep.loadings(list(eta1=paste0('y', 1:4)), paste0("lambda_",2:4))
+prep.loadings(list(eta1=paste0('y', 1:4)), paste0("lambda_", 2:4))
 
 #Single factor model with one latent variable fixing the fourth loading
-prep.loadings(list(eta1=paste0('y', 1:4)), paste0("lambda_",1:3), idvar='y4')
+prep.loadings(list(eta1=paste0('y', 1:4)), paste0("lambda_", 1:3), idvar='y4')
 
 #Single factor model with one latent variable freeing all loadings
 prep.loadings(list(eta1=paste0('y', 1:4)), paste0("lambda_", 1:4), idvar='eta1')
+
+#Single factor model with one latent variable fixing first loading
+# and freely estimated intercept
+prep.loadings(list(eta1=paste0('y', 1:4)), paste0("lambda_", 2:4),
+ intercept=TRUE)
+
+#Single factor model with one latent variable fixing first loading
+# and freely estimated covariate effects for u1 and u2
+prep.loadings(list(eta1=paste0('y', 1:4)), paste0("lambda_", 2:4),
+ exo.names=paste0('u', 1:2))
 
 # Two factor model with simple structure
 prep.loadings(list(eta1=paste0('y', 1:4), eta2=paste0('y', 5:7)), 

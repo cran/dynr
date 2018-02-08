@@ -3,5 +3,6 @@ EMGsim
 LogisticSetPointSDE
 NonlinearDFAsim
 Oscillator
+PFAsim
 PPsim
 RSPPsim

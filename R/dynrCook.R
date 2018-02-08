@@ -185,11 +185,11 @@ displayDynrCook <- function(x, ...){
 }
 
 setMethod("print", "dynrCook", function(x, ...) { 
-  displayDynrCook(x) 
+	displayDynrCook(x) 
 })
 
 setMethod("show", "dynrCook", function(object) { 
-  displayDynrCook(object) 
+	displayDynrCook(object) 
 })
 
 
@@ -215,7 +215,7 @@ setMethod("show", "dynrCook", function(object) {
 ##' # Let cookedModel be the output from dynr.cook
 ##' #coef(cookedModel)
 coef.dynrCook <- function(object, ...){
-  object@transformed.parameters
+	object@transformed.parameters
 }
 
 #`coef<-.dynrCook` <- function(object, value){
@@ -243,11 +243,11 @@ coef.dynrCook <- function(object, ...){
 ##' # Let cookedModel be the output from dynr.cook
 ##' #logLik(cookedModel)
 logLik.dynrCook <- function(object, ...){
-  ans <- -object@neg.log.likelihood
-  attr(ans, "df") <- length(object@fitted.parameters)
-  attr(ans, "nobs") <- nobs(object) #dim(object@eta_smooth_final)[2]
-  class(ans) <- "logLik"
-  return(ans)
+	ans <- -object@neg.log.likelihood
+	attr(ans, "df") <- length(object@fitted.parameters)
+	attr(ans, "nobs") <- nobs(object) #dim(object@eta_smooth_final)[2]
+	class(ans) <- "logLik"
+	return(ans)
 }
 
 # N.B. AIC() and BIC() are implicitly defined in terms
@@ -395,6 +395,23 @@ confint.dynrCook <- function(object, parm, level = 0.95, ...){
 ##' time-varying predicted latent variable mean estimates, predicted error covariance matrix estimates, the error/residual estimates (innovation vector),
 ##' and the error/residual covariance matrix estimates.
 ##' 
+##' The exit flag given after optimization has finished is from the SLSQP optimizer.  Generally, error codes have negative values and successful codes have positive values.  However, codes 5 and 6 do not indicate the model converged, but rather simply ran out of iterations or time, respectively.  A more full description of each code is available at \url{http://ab-initio.mit.edu/wiki/index.php/NLopt_Reference#Return_values} and is also listed in the table below.
+##' 
+##' \tabular{lcl}{
+##' NLOPT Term \tab Numeric Code \tab Description \cr
+##' SUCCESS \tab 1 \tab Generic success return value. \cr
+##' STOPVAL_REACHED \tab 2 \tab Optimization stopped because stopval (above) was reached. \cr
+##' FTOL_REACHED \tab 3 \tab Optimization stopped because ftol_rel or ftol_abs (above) was reached. \cr
+##' XTOL_REACHED \tab 4 \tab Optimization stopped because xtol_rel or xtol_abs (above) was reached. \cr
+##' MAXEVAL_REACHED \tab 5 \tab Optimization stopped because maxeval (above) was reached. \cr
+##' MAXTIME_REACHED \tab 6 \tab Optimization stopped because maxtime (above) was reached. \cr
+##' FAILURE \tab -1 \tab Generic failure code. \cr
+##' INVALID_ARGS \tab -2 \tab Invalid arguments (e.g. lower bounds are bigger than upper bounds, an unknown algorithm was specified, etcetera). \cr
+##' OUT_OF_MEMORY \tab -3 \tab Ran out of memory. \cr
+##' ROUNDOFF_LIMITED \tab -4 \tab Halted because roundoff errors limited progress. (In this case, the optimization still typically returns a useful result.) \cr
+##' FORCED_STOP \tab -5 \tab Halted because of a forced termination: the user called nlopt_force_stop(opt) on the optimization's nlopt_opt object opt from the user's objective function or constraints. \cr
+##' }
+##' 
 ##' @seealso 
 ##' \code{\link{autoplot}}, \code{\link{coef}}, \code{\link{confint}},
 ##' \code{\link{deviance}}, \code{\link{initialize}}, \code{\link{logLik}},
@@ -407,20 +424,27 @@ dynr.cook <- function(dynrModel, conf.level=.95, infile, optimization_flag=TRUE,
 	frontendStart <- Sys.time()
 	transformation=dynrModel@transform@tfun
 	data <- dynrModel$data
-
+	if(xor(dynrModel@verbose, verbose)){ # If model@verbose does not agree with dynr.cook@verbose
+		if(verbose){
+			message("'verbose' argument to dynr.cook() function did not agree with 'verbose' model slot.\nUsing function argument: verbose = TRUE\n")
+		}
+		dynrModel@verbose <- verbose
+		# Always use 'verbose' function argument but only say so when they disagree and verbose=TRUE.
+	}
+	
 	#internalModelPrep convert dynrModel to a model list
 	model <- internalModelPrep(
-	  num_regime=dynrModel@num_regime,
-	  dim_latent_var=dynrModel@dim_latent_var,
-	  xstart=dynrModel@xstart,
-	  ub=dynrModel@ub,
-	  lb=dynrModel@lb,
-	  options=dynrModel@options,
-	  isContinuousTime=dynrModel@dynamics@isContinuousTime,
-	  infile=dynrModel@outfile,
-	  outfile=gsub(".c\\>","",dynrModel@outfile),
-	  compileLib=dynrModel@compileLib,
-	  verbose=dynrModel@verbose
+		num_regime=dynrModel@num_regime,
+		dim_latent_var=dynrModel@dim_latent_var,
+		xstart=dynrModel@xstart,
+		ub=dynrModel@ub,
+		lb=dynrModel@lb,
+		options=dynrModel@options,
+		isContinuousTime=dynrModel@dynamics@isContinuousTime,
+		infile=dynrModel@outfile,
+		outfile=gsub(".c\\>","",dynrModel@outfile),
+		compileLib=dynrModel@compileLib,
+		verbose=dynrModel@verbose
 	)
 	libname <- model$libname
 	model$libname <- NULL
@@ -461,9 +485,9 @@ dynr.cook <- function(dynrModel, conf.level=.95, infile, optimization_flag=TRUE,
 	nonpdH <- !is.positive.definite2(output$hessian.matrix)
 	status = ifelse(nonfiniteH || nonpdH, 0, 1)
 	output2 <- endProcessing(output, transformation, conf.level)
-	if (output$exitflag > 0 && status==1 &&length(dynrModel$param.names[output2$bad.standard.errors])==0){
+	if (output$exitflag > 0 && status==1 && length(dynrModel$param.names[output2$bad.standard.errors])==0){
 		cat('Successful trial\n')
-	}else{
+	} else {
 		#cat('Check the hessian matrix from your dynr output. \n')
 		#cat('Hessian Matrix:',  '\n')
 		#print(output$hessian.matrix)
@@ -473,9 +497,9 @@ dynr.cook <- function(dynrModel, conf.level=.95, infile, optimization_flag=TRUE,
 			warning(msg)
 		} else if(nonpdH || length(dynrModel$param.names[output2$bad.standard.errors]) > 0){
 			msg <- "Hessian is not positive definite. The standard errors were computed using the nearest positive definite approximation to the Hessian matrix."
-  if (length(dynrModel$param.names[output2$bad.standard.errors]) > 0){
-    msg <- paste(c(msg,"These parameters may have untrustworthy standard errors: ", paste(dynrModel$param.names[output2$bad.standard.errors],collapse=", "),"."),collapse="")  
-    }
+			if (length(dynrModel$param.names[output2$bad.standard.errors]) > 0){
+				msg <- paste(c(msg,"These parameters may have untrustworthy standard errors: ", paste(dynrModel$param.names[output2$bad.standard.errors],collapse=", "),"."),collapse="")  
+			}
 			warning(msg)
 		}
 	}
@@ -489,7 +513,12 @@ dynr.cook <- function(dynrModel, conf.level=.95, infile, optimization_flag=TRUE,
 	obj@param.names <- dynrModel$param.names
 	#populate transformed estimates to dynrModel
 	#model<<-PopBackModel(model, obj@transformed.parameters)
-  
+	
+	finalEqualStart <- model$xstart == obj@fitted.parameters
+	if(any(finalEqualStart) && optimization_flag){
+		warning(paste0("Some parameters were left at their starting values.\nModel might not be identified, need bounds, or need different starting values.\nParameters that were unmoved: ", paste(obj@param.names[finalEqualStart], collapse=", ", sep="")))
+	}
+	
 	frontendStop <- Sys.time()
 	totalTime <- frontendStop-frontendStart
 	backendTime <- backendStop-backendStart
@@ -505,15 +534,15 @@ dynr.cook <- function(dynrModel, conf.level=.95, infile, optimization_flag=TRUE,
 
 
 endProcessing2 <- function(x, transformation){
-  cat('Doing end processing for a failed trial\n')
-  tParam <- transformation(x$fitted.parameters)
-  x$transformed.parameters <- tParam
-  
-  nParam <- length(x$fitted.parameters)
-  x$standard.errors <- rep(999,nParam)
-  x$transformed.inv.hessian <- matrix(999, nrow=nParam,ncol=nParam)
-  x$conf.intervals <- matrix(999, nrow=nParam,ncol=2, dimnames=list(NULL, c('ci.lower', 'ci.upper')))
-  return(x)
+	cat('Doing end processing for a failed trial\n')
+	tParam <- transformation(x$fitted.parameters)
+	x$transformed.parameters <- tParam
+	
+	nParam <- length(x$fitted.parameters)
+	x$standard.errors <- rep(999,nParam)
+	x$transformed.inv.hessian <- matrix(999, nrow=nParam,ncol=nParam)
+	x$conf.intervals <- matrix(999, nrow=nParam,ncol=2, dimnames=list(NULL, c('ci.lower', 'ci.upper')))
+	return(x)
 }
 
 
@@ -529,15 +558,21 @@ endProcessing2 <- function(x, transformation){
 
 #J%*%(ginv(x$hessian))t(J) and flag the negative diagonal elements
 
+# TODO adjust endProcessing logic/workflow.  We're computing some things twice, and sometimes in different ways.
+
 endProcessing <- function(x, transformation, conf.level){
 	cat('Doing end processing\n')
 	confx <- qnorm(1-(1-conf.level)/2)
-	if (is.positive.definite(x$hessian.matrix)){
-	  V1 <- solve(x$hessian.matrix)
+	if (is.positive.definite(x$hessian.matrix)){ #N.B. We use is.positive.definite() here, but is.positive.definite2() above.  Why?
+		useHess <- x$hessian.matrix
 	}
 	else{
-	  PDhessian <- (Matrix::nearPD(x$hessian.matrix, conv.norm.type = "F"))$mat
-	  V1 <- solve(PDhessian)
+		useHess <- (Matrix::nearPD(x$hessian.matrix, conv.norm.type = "F"))$mat
+	}
+	V1 <- try(solve(useHess))
+	if(class(V1) == "try-error"){
+		warning("Hessian is not invertible; used pseudo-inverse.\nModel might not be identified or is not at an optimal solution.\nRegard standard errors suspiciously.")
+		V1 <- MASS::ginv(useHess)
 	}
 	
 	#Identifies too many problematic parameters
@@ -549,11 +584,11 @@ endProcessing <- function(x, transformation, conf.level){
 	#bad.SE <- apply(bad.evecj,1,function(x){ifelse(length(x[x=="TRUE"]) > 0, TRUE,FALSE)}) #Flag parameters that have been identified as problematic at least once
 	
 	#Numerical Jacobian
-	J <- numDeriv::jacobian(func=transformation, x=x$fitted.parameters)
-	iHess0 <- J%*%(MASS::ginv(x$hessian))%*%t(J)
+	J <- numDeriv::jacobian(func=transformation, x=x$fitted.parameters) # N.B. fitted.parameters has the untransformed/uncontrained free parameters (i.e. log variances that can be negative).
+	iHess0 <- J %*% (MASS::ginv(x$hessian)) %*% t(J)
 	bad.SE <- diag(iHess0) < 0
 	
-	iHess <- J %*% V1%*%t(J)
+	iHess <- J %*% V1 %*% t(J)
 	tSE <- sqrt(diag(iHess))
 	tParam <- transformation(x$fitted.parameters) #Can do
 	CI <- c(tParam - tSE*confx, tParam + tSE*confx)

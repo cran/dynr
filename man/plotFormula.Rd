@@ -5,7 +5,7 @@
 \title{Plot the formula from a model}
 \usage{
 plotFormula(dynrModel, ParameterAs, printDyn = TRUE, printMeas = TRUE,
-  textsize = 4)
+  printRS = FALSE, textsize = 4)
 }
 \arguments{
 \item{dynrModel}{The model object to plot.}
@@ -17,6 +17,8 @@ and printed as greek letters.}
 \item{printDyn}{A logical value indicating whether or not to plot the formulas for the dynamic model.}
 
 \item{printMeas}{A logical value indicating whether or not to plot the formulas for the measurement model}
+
+\item{printRS}{logical. Whether or not to print the regime-switching model. The default is FALSE.}
 
 \item{textsize}{The text size use in the plot.}
 }
