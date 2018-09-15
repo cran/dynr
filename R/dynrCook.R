@@ -22,10 +22,13 @@ setClass(Class =  "dynrCook",
            fitted.parameters =  "numeric", #Can return
            transformed.parameters =  "numeric", #
            standard.errors =  "numeric",
+           standard.errors.untransformed = "numeric",
            bad.standard.errors = "logical",
            hessian =  "matrix",
            transformed.inv.hessian =  "matrix",
+           inv.hessian ='matrix',
            conf.intervals = "matrix",
+           conf.intervals.endpoint.trans = "matrix",
            exitflag = "numeric", #
            neg.log.likelihood = "numeric", #
            pr_t_given_T  = "matrix", # RxT
@@ -45,10 +48,13 @@ setMethod("initialize", "dynrCook",
             .Object@fitted.parameters <- x$fitted.parameters
             .Object@transformed.parameters <- x$transformed.parameters
             .Object@standard.errors <- x$standard.errors
+            .Object@standard.errors.untransformed <- x$standard.errors.untransformed
             .Object@bad.standard.errors <- x$bad.standard.errors
             .Object@hessian <- x$hessian.matrix
             .Object@transformed.inv.hessian <- x$transformed.inv.hessian
+            .Object@inv.hessian <- x$inv.hessian
             .Object@conf.intervals <- x$conf.intervals
+            .Object@conf.intervals.endpoint.trans <- x$conf.intervals.endpoint.trans
             .Object@exitflag <- x$exitflag
             .Object@neg.log.likelihood <- x$neg.log.likelihood
             .Object@pr_t_given_T <- x$pr_t_given_T
@@ -66,10 +72,13 @@ setClass(Class =  "dynrDebug",
            fitted.parameters =  "numeric", #Can return
            transformed.parameters =  "numeric", #
            standard.errors =  "numeric",
+           standard.errors.untransformed='numeric',
            bad.standard.errors = "logical",
            hessian =  "matrix",
            transformed.inv.hessian =  "matrix",
+           inv.hessian =  "matrix",
            conf.intervals = "matrix",
+           conf.intervals.endpoint.trans="matrix",
            exitflag = "numeric", #
            neg.log.likelihood = "numeric", #
            #Everything else from this point on
@@ -95,10 +104,13 @@ setMethod("initialize", "dynrDebug",
             .Object@fitted.parameters <- x$fitted.parameters
             .Object@transformed.parameters <- x$transformed.parameters
             .Object@standard.errors <- x$standard.errors
+            .Object@standard.errors.untransformed <- x$standard.errors.untransformed
             .Object@bad.standard.errors <- x$bad.standard.errors
             .Object@hessian <- x$hessian.matrix
             .Object@transformed.inv.hessian <- x$transformed.inv.hessian
+            .Object@inv.hessian <- x$inv.hessian
             .Object@conf.intervals <- x$conf.intervals
+            .Object@conf.intervals.endpoint.trans <- x$conf.intervals.endpoint.trans
             .Object@exitflag <- x$exitflag
             .Object@neg.log.likelihood <- x$neg.log.likelihood
             .Object@pr_t_given_T <- x$pr_t_given_T
@@ -292,6 +304,16 @@ vcov.dynrCook <- function(object, ...){
 	dimnames(rt) <- list(nm, nm)
 	return(rt)
 }
+# TODO redefine this method as MDH proposed
+#vcov.dynrCook <- function(object, transformed=TRUE, ...){
+#	nm <- names(coef(object))
+#	 if(transformed){
+#  	    rt <- object@transformed.inv.hessian
+#	 } else {
+#	   rt <- object@inv.hessian}
+#	dimnames(rt) <- list(nm, nm)
+#	return(rt)
+#}
 
 ##' Extract the free parameter names of a dynrCook object
 ##' 
@@ -323,7 +345,9 @@ setMethod("$", "dynrCook",
 ##' @param object a fitted model object
 ##' @param parm which parameters are to be given confidence intervals
 ##' @param level the confidence level
-##' @param ... further names arguments. Ignored.
+##' @param type The type of confidence interval to compute. See details. Partial name matching is used.
+##' @param transformation For \code{type='endpoint.transformation'} the transformation function used.
+##' @param ... further named arguments. Ignored.
 ##' 
 ##' @details
 ##' The \code{parm} argument can be a numeric vector or a vector of names. If it is missing then it defaults to using all the parameters.
@@ -345,17 +369,28 @@ setMethod("$", "dynrCook",
 ##' @examples
 ##' # Let cookedModel be the output from dynr.cook
 ##' #confint(cookedModel)
-confint.dynrCook <- function(object, parm, level = 0.95, ...){
+confint.dynrCook <- function(object, parm, level = 0.95, type = c("delta.method", "endpoint.transformation"), transformation =  NULL, ...){
+	type <- match.arg(type)
+	tlev <- (1-level)/2
+	confx <- qnorm(1-tlev)
+	
 	vals <- coef(object)
 	if(missing(parm)){
 		parm <- names(vals)
 	}
 	vals <- vals[parm]
-	iHess <- vcov(object)[parm, parm, drop=FALSE]
-	SE <- sqrt(diag(iHess))
-	tlev <- (1-level)/2
-	confx <- qnorm(1-tlev)
-	CI <- matrix(c(vals - SE*confx, vals + SE*confx), ncol=2)
+	
+	if(type == "delta.method"){
+		iHess <- vcov(object)[parm, parm, drop=FALSE]
+		SE <- sqrt(diag(iHess))
+		CI <- matrix(c(vals - SE*confx, vals + SE*confx), ncol=2)
+	}
+	if(type == "endpoint.transformation"){
+		tSEalt <- sqrt(diag(object$inv.hessian))
+		CI <- matrix(c(transformation(object$fitted.parameters - tSEalt*confx), transformation(object$fitted.parameters + tSEalt*confx)),ncol=2)
+		# TODO Fix the above to use the vcov method to extract the inverse Hessian instead
+		#  and especially give the User the ability to only get SOME of the free parameters via the 'param' argument
+	}
 	dimnames(CI) <- list(names(vals), c(paste(tlev*100, "%"), paste((1 - tlev)*100, "%")) )
 	return(CI)
 }
@@ -425,12 +460,12 @@ dynr.cook <- function(dynrModel, conf.level=.95, infile, optimization_flag=TRUE,
 	transformation=dynrModel@transform@tfun
 	data <- dynrModel$data
 	if(xor(dynrModel@verbose, verbose)){ # If model@verbose does not agree with dynr.cook@verbose
-		if(verbose){
-			message("'verbose' argument to dynr.cook() function did not agree with 'verbose' model slot.\nUsing function argument: verbose = TRUE\n")
-		}
-		dynrModel@verbose <- verbose
-		# Always use 'verbose' function argument but only say so when they disagree and verbose=TRUE.
-	}
+    if(verbose){
+      message("'verbose' argument to dynr.cook() function did not agree with 'verbose' model slot.\nUsing function argument: verbose = TRUE\n")
+      }
+	  dynrModel@verbose <- verbose
+	  # Always use 'verbose' function argument but only say so when they disagree and verbose=TRUE.
+	  }
 	
 	#internalModelPrep convert dynrModel to a model list
 	model <- internalModelPrep(
@@ -592,8 +627,17 @@ endProcessing <- function(x, transformation, conf.level){
 	tSE <- sqrt(diag(iHess))
 	tParam <- transformation(x$fitted.parameters) #Can do
 	CI <- c(tParam - tSE*confx, tParam + tSE*confx)
+	
+	# EndPoint Transformation
+	tSEalt<-sqrt(diag(V1))
+	x$standard.errors.untransformed <- tSEalt
+	CIalt <- c(transformation(x$fitted.parameters - tSEalt*confx), transformation(x$fitted.parameters + tSEalt*confx))
+	x$conf.intervals.endpoint.trans <- matrix(CIalt, ncol=2, dimnames=list(NULL, c('ci.lower', 'ci.upper')))
+	
+	
 	x$transformed.parameters <- tParam #Can do
 	x$standard.errors <- tSE
+	x$inv.hessian <- V1
 	x$transformed.inv.hessian <- iHess
 	x$conf.intervals <- matrix(CI, ncol=2, dimnames=list(NULL, c('ci.lower', 'ci.upper')))
 	x$bad.standard.errors <- bad.SE

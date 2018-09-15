@@ -4,7 +4,8 @@
 \alias{dynr.model}
 \title{Create a dynrModel object for parameter estimation (cooking dynr) using \code{\link{dynr.cook}}}
 \usage{
-dynr.model(dynamics, measurement, noise, initial, data, ..., outfile)
+dynr.model(dynamics, measurement, noise, initial, data, ...,
+  outfile = tempfile())
 }
 \arguments{
 \item{dynamics}{a dynrDynamics object prepared with \code{\link{prep.formulaDynamics}} 
@@ -24,7 +25,7 @@ a dynrRegimes object prepared with \code{\link{prep.regimes}} and argument trans
 a dynrTrans object prepared with \code{\link{prep.tfun}}.}
 
 \item{outfile}{a character string of the name of the output C script of model functions to be compiled 
-for parameter estimation.}
+for parameter estimation. The default is the name for a potential temporary file returned by tempfile().}
 }
 \description{
 Create a dynrModel object for parameter estimation (cooking dynr) using \code{\link{dynr.cook}}

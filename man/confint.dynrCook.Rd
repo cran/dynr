@@ -4,7 +4,9 @@
 \alias{confint.dynrCook}
 \title{Confidence Intervals for Model Parameters}
 \usage{
-\method{confint}{dynrCook}(object, parm, level = 0.95, ...)
+\method{confint}{dynrCook}(object, parm, level = 0.95,
+  type = c("delta.method", "endpoint.transformation"),
+  transformation = NULL, ...)
 }
 \arguments{
 \item{object}{a fitted model object}
@@ -13,7 +15,11 @@
 
 \item{level}{the confidence level}
 
-\item{...}{further names arguments. Ignored.}
+\item{type}{The type of confidence interval to compute. See details. Partial name matching is used.}
+
+\item{transformation}{For \code{type='endpoint.transformation'} the transformation function used.}
+
+\item{...}{further named arguments. Ignored.}
 }
 \value{
 A matrix with columns giving lower and upper confidence limits for each parameter. These will be labelled as (1-level)/2 and 1 - (1-level)/2 as a percentage (e.g. by default 2.5% and 97.5%).

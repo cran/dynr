@@ -1,5 +1,5 @@
 Package: dynr
-Date: 2018-02-08
+Date: 2018-09-14
 Title: Dynamic Modeling in R
 Authors@R: c(person("Lu", "Ou", role="aut", email="lzo114@psu.edu"),
     person(c("Michael", "D."), "Hunter", role=c("aut", "cre"), email="mhunter.ou@gmail.com"),
@@ -8,10 +8,11 @@ Author: Lu Ou [aut],
   Michael D. Hunter [aut, cre],
   Sy-Miin Chow [aut]
 Maintainer: Michael D. Hunter <mhunter.ou@gmail.com>
-Depends: R (>= 3.0.0), methods, ggplot2
+Depends: R (>= 3.0.0), ggplot2
 Imports: MASS, Matrix, numDeriv, xtable, latex2exp, grid, reshape2,
-        plyr, mice, magrittr, Rdpack
-Suggests: testthat, roxygen2 (>= 3.1)
+        plyr, mice, magrittr, Rdpack, methods
+Suggests: testthat, roxygen2 (>= 3.1), knitr, rmarkdown
+VignetteBuilder: knitr
 Description: Intensive longitudinal data have become increasingly prevalent in
     various scientific disciplines. Many such data sets are noisy, multivariate,
     and multi-subject in nature. The change functions may also be continuous, or
@@ -29,7 +30,7 @@ Description: Intensive longitudinal data have become increasingly prevalent in
     subject time series data or multiple-subject longitudinal data.
 SystemRequirements: GNU make
 NeedsCompilation: yes
-License: Apache License (== 2.0)
+License: GPL-3
 LazyLoad: yes
 LazyData: yes
 Collate: 'dynrData.R' 'dynrRecipe.R' 'dynrModelInternal.R'
@@ -37,8 +38,8 @@ Collate: 'dynrData.R' 'dynrRecipe.R' 'dynrModelInternal.R'
         'dynrMi.R' 'dynrVersion.R' 'dataDoc.R'
 RdMacros: Rdpack
 Biarch: true
-Version: 0.1.12-5
+Version: 0.1.13-2
 RoxygenNote: 5.0.1
-Packaged: 2018-02-08 21:29:05 UTC; mhunter1
+Packaged: 2018-09-14 22:31:59 UTC; mhunter
 Repository: CRAN
-Date/Publication: 2018-02-08 21:36:46 UTC
+Date/Publication: 2018-09-15 05:10:03 UTC
