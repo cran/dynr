@@ -1,5 +1,5 @@
 Package: dynr
-Date: 2018-09-14
+Date: 2018-09-16
 Title: Dynamic Modeling in R
 Authors@R: c(person("Lu", "Ou", role="aut", email="lzo114@psu.edu"),
     person(c("Michael", "D."), "Hunter", role=c("aut", "cre"), email="mhunter.ou@gmail.com"),
@@ -38,8 +38,8 @@ Collate: 'dynrData.R' 'dynrRecipe.R' 'dynrModelInternal.R'
         'dynrMi.R' 'dynrVersion.R' 'dataDoc.R'
 RdMacros: Rdpack
 Biarch: true
-Version: 0.1.13-2
+Version: 0.1.13-3
 RoxygenNote: 5.0.1
-Packaged: 2018-09-14 22:31:59 UTC; mhunter
+Packaged: 2018-09-16 13:20:59 UTC; mhunter
 Repository: CRAN
-Date/Publication: 2018-09-15 05:10:03 UTC
+Date/Publication: 2018-09-16 16:20:03 UTC
