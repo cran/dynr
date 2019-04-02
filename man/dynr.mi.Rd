@@ -4,20 +4,34 @@
 \alias{dynr.mi}
 \title{Multiple Imputation of dynrModel objects}
 \usage{
-dynr.mi(model, m = 5, aux.variable, imp.obs = FALSE, imp.exo = FALSE, lag)
+dynr.mi(model, which.aux, m = 5, iter, imp.obs = FALSE, imp.exo = FALSE,
+  lag, which.lag, leads = FALSE, diag = TRUE, cook.save = FALSE,
+  seed = NA)
 }
 \arguments{
 \item{model}{dynrModel object}
 
+\item{which.aux}{names of auxiliary variables used in imputation}
+
 \item{m}{number of multiple imputations}
 
-\item{aux.variable}{names of auxiliary variables used in imputation}
+\item{iter}{number of iterations in one imputation}
 
 \item{imp.obs}{logical. whether to impute the observed variables}
 
 \item{imp.exo}{logical. whether to impute the exogenous variables}
 
 \item{lag}{numeric. the number of lags to use}
+
+\item{which.lag}{names of variables to create lags on}
+
+\item{leads}{logical. whether to use lags or leads}
+
+\item{diag}{logical. whether to use convergence diagnostics}
+
+\item{cook.save}{logical. whether to save dynr.cook object}
+
+\item{seed}{integer. a single value used to set seed in imputation}
 }
 \description{
 Multiple Imputation of dynrModel objects

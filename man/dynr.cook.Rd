@@ -65,7 +65,9 @@ INVALID_ARGS \tab -2 \tab Invalid arguments (e.g. lower bounds are bigger than u
 OUT_OF_MEMORY \tab -3 \tab Ran out of memory. \cr
 ROUNDOFF_LIMITED \tab -4 \tab Halted because roundoff errors limited progress. (In this case, the optimization still typically returns a useful result.) \cr
 FORCED_STOP \tab -5 \tab Halted because of a forced termination: the user called nlopt_force_stop(opt) on the optimization's nlopt_opt object opt from the user's objective function or constraints. \cr
+NONFINITE_FIT \tab -6 \tab Fit function is not finite (i.e., is NA, NaN, Inf or -Inf). \cr
 }
+The last row of this table corresponding to an exit code of -6, is not from NLOPT, but rather is specific to the \code{dynr} package.
 }
 \examples{
 #fitted.model <- dynr.cook(model)

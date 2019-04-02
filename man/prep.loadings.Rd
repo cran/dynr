@@ -4,7 +4,7 @@
 \alias{prep.loadings}
 \title{Recipe function to quickly create factor loadings}
 \usage{
-prep.loadings(map, params, idvar, exo.names = character(0),
+prep.loadings(map, params = NULL, idvar, exo.names = character(0),
   intercept = FALSE)
 }
 \arguments{

@@ -150,19 +150,20 @@ Sys.setenv(TEXINPUTS = getwd(),
 
 
 ###################################################
-### code chunk number 12: NonlinearContinuousTimeModels.Rnw:282-289 (eval = FALSE)
+### code chunk number 12: NonlinearContinuousTimeModels.Rnw:282-290 (eval = FALSE)
 ###################################################
 ## #------------------------------------------------------------------------------
 ## # Example 2: Regime-Switching Nonlinear Continuous-time Model
 ## #------------------------------------------------------------------------------
 ## # ---- Read in the data ----
 ## data("RSPPsim")
-## data <- dynr.data(RSPPsim, id = "id", time = "time",
-##   observed = c("x", "y"), covariate = "cond")
+## useIds <- 1:10 #
+## data <- dynr.data(RSPPsim[RSPPsim$id %in% useIds, ], id = "id", time = "time",
+##     observed = c("x", "y"), covariate = "cond")
 
 
 ###################################################
-### code chunk number 13: NonlinearContinuousTimeModels.Rnw:293-296 (eval = FALSE)
+### code chunk number 13: NonlinearContinuousTimeModels.Rnw:294-297 (eval = FALSE)
 ###################################################
 ## cPreyFormula <- prey ~ a * prey - e * prey ^ 2 - b * prey * predator
 ## cPredFormula <- predator ~ f * predator - c * predator ^ 2 + d * prey * predator
@@ -170,7 +171,7 @@ Sys.setenv(TEXINPUTS = getwd(),
 
 
 ###################################################
-### code chunk number 14: NonlinearContinuousTimeModels.Rnw:300-304 (eval = FALSE)
+### code chunk number 14: NonlinearContinuousTimeModels.Rnw:301-305 (eval = FALSE)
 ###################################################
 ## rsFormula <- list(ppFormula, cpFormula)
 ## dynm <- prep.formulaDynamics(formula = rsFormula,
@@ -179,7 +180,7 @@ Sys.setenv(TEXINPUTS = getwd(),
 
 
 ###################################################
-### code chunk number 15: NonlinearContinuousTimeModels.Rnw:341-359 (eval = FALSE)
+### code chunk number 15: NonlinearContinuousTimeModels.Rnw:342-360 (eval = FALSE)
 ###################################################
 ## # Regime-switching function
 ## # The RS model assumes that each element of the transition probability 
@@ -202,13 +203,13 @@ Sys.setenv(TEXINPUTS = getwd(),
 
 
 ###################################################
-### code chunk number 16: NonlinearContinuousTimeModels.Rnw:383-384 (eval = FALSE)
+### code chunk number 16: NonlinearContinuousTimeModels.Rnw:384-385 (eval = FALSE)
 ###################################################
 ## file.edit(system.file("demo", "RSNonlinearODE.R", package = "dynr"))
 
 
 ###################################################
-### code chunk number 17: NonlinearContinuousTimeModels.Rnw:387-432 (eval = FALSE)
+### code chunk number 17: NonlinearContinuousTimeModels.Rnw:388-433 (eval = FALSE)
 ###################################################
 ## # Measurement (factor loadings)
 ## meas <- prep.measurement(
@@ -258,7 +259,7 @@ Sys.setenv(TEXINPUTS = getwd(),
 
 
 ###################################################
-### code chunk number 18: NonlinearContinuousTimeModels.Rnw:439-462 (eval = FALSE)
+### code chunk number 18: NonlinearContinuousTimeModels.Rnw:440-463 (eval = FALSE)
 ###################################################
 ## # Cooking materials
 ## 
@@ -286,7 +287,7 @@ Sys.setenv(TEXINPUTS = getwd(),
 
 
 ###################################################
-### code chunk number 19: NonlinearContinuousTimeModels.Rnw:466-470 (eval = FALSE)
+### code chunk number 19: NonlinearContinuousTimeModels.Rnw:467-471 (eval = FALSE)
 ###################################################
 ## dynr.ggplot(res2.2, model2.2, style = 2, 
 ##   names.regime = c("Summer", "Winter"),
@@ -295,7 +296,7 @@ Sys.setenv(TEXINPUTS = getwd(),
 
 
 ###################################################
-### code chunk number 20: NonlinearContinuousTimeModels.Rnw:492-499 (eval = FALSE)
+### code chunk number 20: NonlinearContinuousTimeModels.Rnw:493-500 (eval = FALSE)
 ###################################################
 ## plotFormula(model2.2, ParameterAs = names(model2.2)) +
 ##   ggtitle("(A)") +

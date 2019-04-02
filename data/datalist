@@ -3,6 +3,7 @@ EMGsim
 LogisticSetPointSDE
 NonlinearDFAsim
 Oscillator
+Outliers
 PFAsim
 PPsim
 RSPPsim

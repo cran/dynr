@@ -1,102 +1,197 @@
 ##' Multiple Imputation of dynrModel objects
 ##' 
 ##' @param model dynrModel object
+##' @param which.aux names of auxiliary variables used in imputation 
 ##' @param m number of multiple imputations
-##' @param aux.variable names of auxiliary variables used in imputation
+##' @param iter number of iterations in one imputation
 ##' @param imp.obs logical. whether to impute the observed variables
 ##' @param imp.exo logical. whether to impute the exogenous variables
 ##' @param lag numeric. the number of lags to use
+##' @param which.lag names of variables to create lags on
+##' @param leads logical. whether to use lags or leads
+##' @param diag logical. whether to use convergence diagnostics
+##' @param cook.save logical. whether to save dynr.cook object
+##' @param seed integer. a single value used to set seed in imputation
 ##' 
 ##' @details
 ##' This function is in alpha-testing form.  Please do not use or rely on it for now. A full implementation is in progress.
-dynr.mi <- function(model, m=5, aux.variable, imp.obs=FALSE, imp.exo=FALSE, lag){    #multiple lag; #factor  #get variable names
+dynr.mi <- function(model, which.aux, m=5, iter, imp.obs=FALSE, imp.exo=FALSE, lag, which.lag, 
+                    leads = FALSE, diag = TRUE, cook.save = FALSE, seed = NA){    #multiple lag; #factor  #get variable names
 	
 	data <- model$data$original.data
-	k <- length(coef(model)) #- length(model@initial@paramnames)             #number of parameters estimated
-	nolag <- TRUE
+	k <- length(model$param.names)    # number of parameters estimated
 	
 	
 	ynames <- model$data$observed.names
 	xnames <- model$data$covariate.names
 	y <- data[, colnames(data)==ynames]
 	x <- data[, colnames(data)==xnames]
+	au <- data[, colnames(data)==which.aux] 
 	ID <- model$data$id
+	id <- unique(ID)   # number of subjects
 	time <- model$data$time
 	
-	au <- data[, colnames(data)==aux.variable]  
+	# raw data 
+	datanolag <- cbind(ID,y,x,au) 
 	
-	dataforlag <- cbind(ID,y,x)
+	# select variables to create lags on
+	dataforlag <- subset(datanolag,select = c("ID", which.lag))  
 	
-	#dataforlag <- ts(dataforlag)
+	# create a null data frame to store lagged variables 
+	datalag <- data.frame(ID, matrix(NA, nrow = length(ID), ncol = length(which.lag)*lag))
 	
-	#head(stats::lag(as.xts(dataforlag), 2))
-	#head(lag(dataforlag, 2))
+	if(lag < 1){
+	  warning("No lags/leads introduced.")
+	  datalag <- dataforlag
+	}
 	
-	datalag <- dataforlag
-	#  dataforlag %>%
-	#  dplyr::group_by(ID) %>%
-	#  dplyr::mutate_all(lag) #Linying, what does this "lag" do?
+	for(i in id){
+	  # tmp used to store original variables for each subject 
+	  tmp <- dataforlag[dataforlag$ID == i,]
+	  tmp <- as.matrix(subset(tmp, select = -ID))
+	  P <- ncol(tmp)
+	  nt <- nrow(tmp)
+	  if (lag > nt-1){
+	    lag <- nt-1
+	    warning("The number of lags/leads should be smaller than the number of measurements.")
+	  }
+	  
+	  for(t in 1:lag){
+	    # tmp1 used to store lagged variables for each subject
+	    tmp1 <- matrix(NA,nrow = nt, ncol = P)
+	    if (leads == TRUE)  { tmp1[1:(nt-t),] <- tmp[(t+1):nt,] }
+	    else  { tmp1[(t+1):nt,] <- tmp[1:(nt-t),] }
+	    a <- P*(t-1)+2 
+	    b <- P*t+1 
+	    datalag[datalag$ID == i, ][, a:b] <- tmp1
+	  }
+	}
+
+	# combine original variables and lagged variables 
+	dataformice <- data.frame(datanolag, subset(datalag, select = -ID))
+
 	
-	dataformice <- cbind(dataforlag[,-1], datalag[,-1], au)
-	dataformice <- data.frame(dataformice)
+	imp <- mice::mice(dataformice, m=m, maxit = iter, seed = seed, printFlag = FALSE)
 	
-	colnames(dataformice)=c()
-	m <- m
-	imp <- mice::mice(dataformice, m=m)
 	
+	# convergence diagnostics
+	diag.mi = function(imp, nvariables, m,itermin,iter,burn){ #number of iterations should be more than itermin
+	  
+	  chains = m
+	  
+	  # reformat imp$chainMean to a matrix called coda
+	  chainmean = imp$chainMean
+	  chainmean2 = chainmean[!is.na(chainmean)]
+	  coda = matrix(chainmean2, nrow = m*iter, byrow = T)
+	  
+	  # create a null matrix to store Rhats for all variables
+	  Rhat = matrix(NA, nrow = iter, ncol = nvariables) 
+	  
+	  #cal Rhats for each iteration and each variable
+	  for(i in itermin:iter){
+	    
+	    # select all values generated from i iterations
+	    codai = coda[1:m*i,1:nvariables]
+	    value = list()  #each list contains a chain 
+	    for(k in 1:m){
+	      value[[k]] = coda[(i*(k-1)+1+burn):(i*k),]  #drop the values of each chain in the beginning period
+	    }
+	    
+	    # cal Rhats
+	    iterations = i
+	    for(j in 1:nvariables) {
+	      
+	      # create vectors to store means and variations of values in chains for each variable
+	      chainmeans = rep(NA, chains)
+	      chainvars = rep(NA, chains)
+	      
+	      for(k in 1:chains) {
+	        sum = sum(value[[k]][,j])
+	        var = var(value[[k]][,j])
+	        mean = sum / iterations
+	        
+	        chainmeans[k] = mean
+	        chainvars[k] = var
+	      }
+	      globalmean = sum(chainmeans) / chains
+	      globalvar = sum(chainvars) / chains
+	      
+	      # Compute between- and within-variances and MPV
+	      b = sum((chainmeans - globalmean)^2) * iterations / (chains - 1)
+	      
+	      varplus = (iterations - 1) * globalvar / iterations + b / iterations
+	      
+	      # Gelman-Rubin statistic (Rhat)
+	      rhat = sqrt(varplus / globalvar)
+	      Rhat[i,j] = rhat
+	    }
+	  }
+	  return(Rhat)
+	}
+	
+	
+	if (diag == TRUE){
+	  # trace plots from mice()
+	  plot(imp, c(ynames,xnames)) 
+	  
+    # Rhat plots from diag.mi()
+	  nvariables = length(c(ynames,xnames))
+	  result = diag.mi(imp, nvariables, m, 2,iter,0)
+	  
+	  names =c(ynames,xnames)
+	  for(j in 1:nvariables){
+	    plot(2:iter, result[2:iter,j],type="l",ylim=c(min(na.omit(result)),max(na.omit(result))),ylab="Rhat",xlab="last iteration in chain",main=names[j])
+	    abline(h=1.1,lty=2,col=2)  # criterion set as Rhat < 1.1
+	  }
+	}
 	
 	pmcarqhat <- matrix(NA, nrow=m, ncol=k) #parameter estimates from each imputation
 	pmcaru <- array(NA, dim=c(k,k,m)) #vcov of par estimates from each imputation
 	
+	print("Cooking the dynr model to estimate free parameters")
+	
 	for(j in 1:m){
 		
-		completedata <- mice::complete(imp, action=j)
-		colnames(completedata) <- c(ynames, xnames,
-		                      paste0("lag", ynames),
-		                      paste0("lag", xnames),
-		                      colnames(au))
+		completedata <- mice::complete(imp, action=j) #obtain the jth imputation
 		
 		if(imp.obs==TRUE){
-			imp.data.obs <- completedata[, colnames(completedata)==ynames]
+			imp.data.obs <- completedata[, ynames]
 		} else{
 			imp.data.obs <- y
 		}
 		
 		if(imp.exo==TRUE){
-			imp.data.exo <- completedata[, colnames(completedata)==xnames]
+			imp.data.exo <- completedata[, xnames]
 		} else{
 			imp.data.exo <- x
 		}
 		
 		newdata <- cbind(ID, time, imp.data.obs, imp.data.exo)
 		
-		#Whoa WFT is this?!?
-		save(newdata,file="test.rdata")
-		#Whoa WFT is this?!?
 		
-		colnames(newdata) <- c("ID", "Time", "wp", "hp", "ca", "cn")
+		save(newdata,file="test.rdata")
+
+		
+		colnames(newdata) <- c("ID", "Time", ynames,xnames)
 		
 		data <- dynr.data(newdata, id="ID", time="Time",
-		                observed=c("wp", "hp"), covariates=c("ca","cn"))
+		                observed=ynames, covariates=xnames)
 		
 		modelnew <- model
-		modelnew$data <- data
-		#   model <- dynr.model(dynamics=model@dynamics, measurement=model@measurement,
-		#                      noise=model@noise, initial=model@initial, data=data, transform=model@transform,
-		#                     outfile=paste("trial4",i,".c",sep=""))
+		modelnew@data <- data
+		modelnew@compileLib = FALSE #avoid conflicts among concurrent output C scripts of model functions
+
 		
-		
-		# model <- dynr.model(dynamics=dynm, measurement=meas,
-		#                     noise=mdcov, initial=initial, data=data,#transform=trans,
-		#                     outfile=paste("trial2",i,".c",sep=""))
-		
-		
-		trial <- dynr.cook(modelnew)  #names(trial) get names of the params
+		trial <- dynr.cook(modelnew, verbose = FALSE)  #names(trial) get names of the params
 		#summary(trial)
 		
+		# save dynr.cook results
+		if (cook.save == TRUE)
+		  save(trial, file=paste0("cookresult",j,".rdata"))
+		
 		#getting parameter estimates
-		pmcarqhat[j,] <- coef(trial)
-		pmcaru[, ,j] <- vcov(trial)
+		pmcarqhat[j,] <- coef(trial)[1:k]
+		pmcaru[, ,j] <- vcov(trial)[c(1:k),c(1:k)]
 	}
 	
 	pqbarmcarimpute <- apply(pmcarqhat, 2, mean) 
