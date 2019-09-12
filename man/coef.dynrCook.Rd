@@ -28,10 +28,6 @@ A numeric vector of the fitted parameters.
 \description{
 aliases coef.dynrModel coef<- coef<-.dynrModel
 }
-\examples{
-# Let cookedModel be the output from dynr.cook
-#coef(cookedModel)
-}
 \seealso{
 Other S3 methods \code{\link{logLik.dynrCook}}
 }

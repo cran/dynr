@@ -25,10 +25,6 @@ The 'df' attribute for this object is the number of freely estimated parameters.
 
 The \code{deviance} method returns minus two times the log likelihood.
 }
-\examples{
-# Let cookedModel be the output from dynr.cook
-#logLik(cookedModel)
-}
 \seealso{
 Other S3 methods \code{\link{coef.dynrCook}}
 }

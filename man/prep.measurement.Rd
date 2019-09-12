@@ -40,16 +40,6 @@ The number 0 and the character 'fixed' are reserved for fixed parameters.
 When a single matrix is given to values.*, that matrix is not regime-switching.
 Correspondingly, when a list of length r is given, that matrix is regime-switching with values and params for the r regimes in the elements of the list.
 }
-\examples{
-prep.measurement(diag(1, 5), diag("lambda", 5))
-prep.measurement(matrix(1, 5, 5), diag(paste0("lambda_", 1:5)))
-prep.measurement(diag(1, 5), diag(0, 5)) #identity measurement model
-
-#Regime-switching measurement model where the first latent variable is
-# active for regime 1, and the second latent variable is active for regime 2
-# No free parameters are present.
-prep.measurement(values.load=list(matrix(c(1,0), 1, 2), matrix(c(0, 1), 1, 2)))
-}
 \seealso{
 Methods that can be used include: \code{\link{print}}, \code{\link{printex}}, \code{\link{show}}
 }

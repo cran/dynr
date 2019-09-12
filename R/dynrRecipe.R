@@ -683,149 +683,53 @@ setMethod("writeCcode", "dynrMeasurement",
 # not sure what to do here yet
 setMethod("writeCcode", "dynrDynamicsFormula",
 	function(object, covariates){
-	  formula <- object$formula
-	  jacob <- object$jacobian
-	  nregime=length(formula)
-	  n=sapply(formula,length)
-	  
-	  fml=lapply(formula,processFormula)
-	  lhs=lapply(fml,function(x){lapply(x,"[[",1)})
-	  rhs=lapply(fml,function(x){lapply(x,"[[",2)})
-	  
-	  fmlj=lapply(jacob,processFormula)
-	  row=lapply(fmlj,function(x){lapply(x,"[[",1)})
-	  col=lapply(fmlj,function(x){lapply(x,"[[",2)})
-	  rhsj=lapply(fmlj,function(x){lapply(x,"[[",3)})
-	  
-	  for (i in 1:length(covariates)){
-	    selected <- covariates[i]
-	    get <- paste0("gsl_vector_get(co_variate, ", which(covariates == selected)-1,")")
-	    rhs <- lapply(gsub(paste0("\\<",selected,"\\>"), get, rhs), function(x){eval(parse(text=x))})
-	    rhsj <- lapply(gsub(paste0("\\<",selected,"\\>"), get, rhsj), function(x){eval(parse(text=x))})
-	  }
-	  
-	  if (object@isContinuousTime){
-	    #function_dx_dt
-	    ret="void function_dx_dt(double t, size_t regime, const gsl_vector *x, double *param, size_t n_param, const gsl_vector *co_variate, gsl_vector *F_dx_dt){"
-	    
-	    if (nregime>1){
-	      ret=paste(ret,"switch (regime) {",sep="\n\t")
-	      for (r in 1:nregime){
-	        ret=paste(ret,paste0("\tcase ",r-1,":"),sep="\n\t")
-	        for (i in 1:n[r]){
-	          for (j in 1:length(lhs[[r]])){
-	            rhs[[r]][[i]]=gsub(paste0("\\<",lhs[[r]][[j]],"\\>"),paste0("gsl_vector_get(x,",j-1,")"),rhs[[r]][[i]])
-	          }
-	          ret=paste(ret,paste0("\tgsl_vector_set(F_dx_dt,",i-1,",",rhs[[r]][[i]],");"),sep="\n\t")    
-	        }
-	        ret=paste(ret,paste0("break;\n"),sep="\n\t")
-	        
-	      }
-	      ret=paste(ret,paste0("\t}"),sep="\n\t")
-	      
-	    }else{
-	      for (i in 1:n){
-	        for (j in 1:length(lhs[[1]])){
-	          rhs[[1]][[i]]=gsub(paste0("\\<",lhs[[1]][[j]],"\\>"),paste0("gsl_vector_get(x,",j-1,")"),rhs[[1]][[i]])
-	        }
-	        ret=paste(ret,paste0("\tgsl_vector_set(F_dx_dt,",i-1,",",rhs[[1]][[i]],");"),sep="\n\t")    
-	      }
-	    }
-	    
-	    ret=paste0(ret,"\n\t}")
-	    
-	    #function_dF_dx
-	    ret=paste0(ret,"\n\n/**\n* The dF/dx function\n* The partial derivative of the jacobian of the DE function with respect to the variable x\n* @param param includes at the end the current state estimates in the same order as the states following the model parameters\n*/void function_dF_dx(double t, size_t regime, double *param, const gsl_vector *co_variate, gsl_matrix *F_dx_dt_dx){")
-	    if (nregime>1){
-	      ret=paste(ret,"switch (regime) {",sep="\n\t")
-	      for (r in 1:nregime){
-	        ret=paste(ret,paste0("case ",r-1,":"),sep="\n\t")
-	        for (i in 1:length(jacob[[r]])){
-	          for (j in 1:length(lhs[[r]])){
-	            rhsj[[r]][[i]]=gsub(paste0("\\<",lhs[[r]][[j]],"\\>"),paste0("param[NUM_PARAM+",j-1,"]"),rhsj[[r]][[i]])
-	          }
-	          
-	          ret=paste(ret,paste0("\tgsl_matrix_set(F_dx_dt_dx,",which(lhs[[r]]==row[[r]][[i]])-1,",",which(lhs[[r]]==col[[r]][[i]])-1,",",rhsj[[r]][[i]],");"),sep="\n\t")    
-	        }
-	        ret=paste(ret,paste0("break;\n"),sep="\n\t")
-	        
-	      }
-	      ret=paste(ret,paste0("\t}"),sep="\n\t")
-	      
-	    }else{
-	      for (i in 1:length(jacob[[1]])){
-	        for (j in 1:length(lhs[[1]])){
-	          rhsj[[1]][[i]]=gsub(paste0("\\<",lhs[[1]][[j]],"\\>"),paste0("param[NUM_PARAM+",j-1,"]"),rhsj[[1]][[i]])
-	        }
-	        
-	        ret=paste(ret,paste0("\tgsl_matrix_set(F_dx_dt_dx,",which(unlist(lhs[[1]])==row[[1]][[i]])-1,",",which(unlist(lhs[[1]])==col[[1]][[i]])-1,",",rhsj[[1]][[i]],");"),sep="\n\t")    
-	      }
-	    }
-	    
-	    ret=paste0(ret,"\n\t}")
-	    
-	  }else{
-	    #function_dynam
-	    ret="void function_dynam(const double tstart, const double tend, size_t regime, const gsl_vector *xstart,\n\tdouble *param, size_t n_gparam,const gsl_vector *co_variate,\n\tvoid (*g)(double, size_t, const gsl_vector *, double *, size_t, const gsl_vector *, gsl_vector *),\n\tgsl_vector *x_tend){"
-	    
-	    if (nregime>1){
-	      ret=paste(ret,"switch (regime) {",sep="\n\t")
-	      for (r in 1:nregime){
-	        ret=paste(ret,paste0("\tcase ",r-1,":"),sep="\n\t")
-	        for (i in 1:n[r]){
-	          for (j in 1:length(lhs[[r]])){
-	            rhs[[r]][[i]]=gsub(paste0("\\<",lhs[[r]][[j]],"\\>"),paste0("gsl_vector_get(xstart,",j-1,")"),rhs[[r]][[i]])
-	          }
-	          ret=paste(ret,paste0("\tgsl_vector_set(x_tend,",i-1,",",rhs[[r]][[i]],");"),sep="\n\t")    
-	        }
-	        ret=paste(ret,paste0("break;\n"),sep="\n\t")
-	        
-	      }
-	      ret=paste(ret,paste0("\t}"),sep="\n\t")
-	      
-	    }else{
-	      for (i in 1:n){
-	        for (j in 1:length(lhs[[1]])){
-	          rhs[[1]][[i]]=gsub(paste0("\\<",lhs[[1]][[j]],"\\>"),paste0("gsl_vector_get(xstart,",j-1,")"),rhs[[1]][[i]])
-	        }
-	        ret=paste(ret,paste0("\tgsl_vector_set(x_tend,",i-1,",",rhs[[1]][[i]],");"),sep="\n\t")    
-	      }
-	    }
-	    
-	    ret=paste0(ret,"\n\t}")
-	    
-	    #function_jacob_dynam
-	    ret=paste0(ret,"\n\nvoid function_jacob_dynam(const double tstart, const double tend, size_t regime, const gsl_vector *xstart,\n\tdouble *param, size_t num_func_param, const gsl_vector *co_variate,\n\tvoid (*g)(double, size_t, double *, const gsl_vector *, gsl_matrix *),\n\tgsl_matrix *Jx){")
-	    if (nregime>1){
-	      ret=paste(ret,"switch (regime) {",sep="\n\t")
-	      for (r in 1:nregime){
-	        ret=paste(ret,paste0("case ",r-1,":"),sep="\n\t")
-	        for (i in 1:length(jacob[[r]])){
-	          for (j in 1:length(lhs[[r]])){
-	            rhsj[[r]][[i]]=gsub(paste0("\\<",lhs[[r]][[j]],"\\>"),paste0("gsl_vector_get(xstart,",j-1,")"),rhsj[[r]][[i]])
-	          }
-	          
-	          ret=paste(ret,paste0("\tgsl_matrix_set(Jx,",which(lhs[[r]]==row[[r]][[i]])-1,",",which(lhs[[r]]==col[[r]][[i]])-1,",",rhsj[[r]][[i]],");"),sep="\n\t")    
-	        }
-	        ret=paste(ret,paste0("break;\n"),sep="\n\t")
-	        
-	      }
-	      ret=paste(ret,paste0("\t}"),sep="\n\t")
-	      
-	    }else{
-	      for (i in 1:length(jacob[[1]])){
-	        for (j in 1:length(lhs[[1]])){
-	          rhsj[[1]][[i]]=gsub(paste0("\\<",lhs[[1]][[j]],"\\>"),paste0("gsl_vector_get(xstart,",j-1,")"),rhsj[[1]][[i]])
-	        }
-	        
-	        ret=paste(ret,paste0("\tgsl_matrix_set(Jx,",which(unlist(lhs[[1]])==row[[1]][[i]])-1,",",which(unlist(lhs[[1]])==col[[1]][[i]])-1,",",rhsj[[1]][[i]],");"),sep="\n\t")    
-	      }
-	    }
-	    
-	    ret=paste0(ret,"\n\t}")
-	  }
-	  object@c.string <- ret
-	  return(object)
+		formula <- object$formula
+		jacob <- object$jacobian
+		nregime <- length(formula)
+		n <- sapply(formula, length)
+		nj <- sapply(jacob, length)
+		
+		fml <- lapply(formula, processFormula)
+		lhs <- lapply(fml, function(x){lapply(x, "[[", 1)})
+		rhs <- lapply(fml, function(x){lapply(x, "[[", 2)})
+		
+		fmlj <- lapply(jacob, processFormula)
+		row <- lapply(fmlj, function(x){lapply(x, "[[", 1)})
+		col <- lapply(fmlj, function(x){lapply(x, "[[", 2)})
+		rhsj <- lapply(fmlj, function(x){lapply(x, "[[", 3)})
+		
+		for (i in 1:length(covariates)){
+			selected <- covariates[i]
+			get <- paste0("gsl_vector_get(co_variate, ", which(covariates == selected)-1, ")")
+			rhs <- lapply(gsub(paste0("\\<", selected, "\\>"), get, rhs), function(x){eval(parse(text=x))})
+			rhsj <- lapply(gsub(paste0("\\<", selected, "\\>"), get, rhsj), function(x){eval(parse(text=x))})
+		}
+		
+		if (object@isContinuousTime){
+			#function_dx_dt
+			ret <- "void function_dx_dt(double t, size_t regime, const gsl_vector *x, double *param, size_t n_param, const gsl_vector *co_variate, gsl_vector *F_dx_dt){"
+			
+			ret <- paste0(ret, cswapDynamicsFormulaLoop(nregime=nregime, n=n, lhs=lhs, rhs=rhs, target1='gsl_vector_get(x, ', close=')', target2='gsl_vector_set(F_dx_dt, ', vector=TRUE))
+			
+			#function_dF_dx
+			ret <- paste0(ret, "\n\n/**\n* The dF/dx function\n* The partial derivative of the jacobian of the DE function with respect to the variable x\n* @param param includes at the end the current state estimates in the same order as the states following the model parameters\n*/void function_dF_dx(double t, size_t regime, double *param, const gsl_vector *co_variate, gsl_matrix *F_dx_dt_dx){")
+			
+			ret <- paste0(ret, cswapDynamicsFormulaLoop(nregime=nregime, n=nj, lhs=lhs, rhs=rhsj, target1='param[NUM_PARAM+', close=']', target2='gsl_matrix_set(F_dx_dt_dx, ', row=row, col=col))
+			
+		} else{ # is Discrete Time
+			#function_dynam
+			ret <- "void function_dynam(const double tstart, const double tend, size_t regime, const gsl_vector *xstart,\n\tdouble *param, size_t n_gparam, const gsl_vector *co_variate,\n\tvoid (*g)(double, size_t, const gsl_vector *, double *, size_t, const gsl_vector *, gsl_vector *),\n\tgsl_vector *x_tend){"
+			
+			ret <- paste0(ret, cswapDynamicsFormulaLoop(nregime=nregime, n=n, lhs=lhs, rhs=rhs, target1='gsl_vector_get(xstart, ', close=')', target2='gsl_vector_set(x_tend, ', vector=TRUE))
+			
+			#function_jacob_dynam
+			ret <- paste0(ret, "\n\nvoid function_jacob_dynam(const double tstart, const double tend, size_t regime, const gsl_vector *xstart,\n\tdouble *param, size_t num_func_param, const gsl_vector *co_variate,\n\tvoid (*g)(double, size_t, double *, const gsl_vector *, gsl_matrix *),\n\tgsl_matrix *Jx){")
+			
+			ret <- paste0(ret, cswapDynamicsFormulaLoop(nregime=nregime, n=nj, lhs=lhs, rhs=rhsj, target1='gsl_vector_get(xstart, ', close=')', target2='gsl_matrix_set(Jx, ', row=row, col=col))
+			
+		} # end discrete time ifelse
+		object@c.string <- ret
+		return(object)
 	}
 )
 #Example
@@ -837,6 +741,32 @@ setMethod("writeCcode", "dynrDynamicsFormula",
 # )
 # dynam<-prep.formulaDynamics(formula=formula,startval=c(a1=.3,a2=.4,c12=-.5,c21=-.5),isContinuousTime=FALSE)
 # cat(writeCcode(dynam)$c.string)
+
+cswapDynamicsFormula <- function(lhs, index, rhs, vtarget, close){
+	return(gsub(paste0("\\<", lhs, "\\>"), paste0(vtarget, index, close), rhs))
+}
+
+cswapDynamicsFormulaLoop <- function(nregime, n, lhs, rhs, target1, close, target2, vector=FALSE, row=NULL, col=NULL){
+	ans <- paste0("\n\t", "switch (regime) {")
+	for (r in 1:nregime){
+		ans <- paste(ans, paste0("\tcase ", r-1, ":"), sep="\n\t")
+		for (i in 1:n[r]){
+			for (j in 1:length(lhs[[r]])){
+				rhs[[r]][[i]] <- cswapDynamicsFormula(lhs=lhs[[r]][[j]], index=j-1, rhs=rhs[[r]][[i]], vtarget=target1, close=close)
+			}
+			if(vector){
+				ans <- paste(ans, paste0("\t\t", target2, i-1, ", ", rhs[[r]][[i]], ");"), sep="\n\t")
+			} else {
+				ans <- paste(ans, paste0("\t\t", target2, which(lhs[[r]] == row[[r]][[i]])-1, ", ", which(lhs[[r]] == col[[r]][[i]])-1, ", ", rhs[[r]][[i]], ");"), sep="\n\t")
+			}
+		}
+		ans <- paste(ans, paste0("\t\tbreak;"), sep="\n\t")
+	}
+	ans <- paste(ans, paste0("}"), sep="\n\t")
+	
+	ans <- paste0(ans, "\n}")
+	return(ans)
+}
 
 setMethod("writeCcode", "dynrDynamicsMatrix",
 	function(object, covariates){
@@ -1511,8 +1441,6 @@ reverseldl <- function(values){
 ##' as for the \code{\link{diag}} function in the base package.  Off-diagonal entries
 ##' are filled with "0".
 ##' 
-##' @examples
-##' diag(letters[1:3])
 # a new method for diag with character input
 setMethod("diag", "character", #diag.character <-
 	function(x=1, nrow, ncol){
@@ -1716,37 +1644,6 @@ extractValues <- function(v, p, symmetric=FALSE){
 ##' zero as the starting value.
 ##' For complete functionality use \code{\link{prep.measurement}}.
 ##' 
-##' @examples
-##' #Single factor model with one latent variable fixing first loading
-##' prep.loadings(list(eta1=paste0('y', 1:4)), paste0("lambda_", 2:4))
-##'
-##' #Single factor model with one latent variable fixing the fourth loading
-##' prep.loadings(list(eta1=paste0('y', 1:4)), paste0("lambda_", 1:3), idvar='y4')
-##' 
-##' #Single factor model with one latent variable freeing all loadings
-##' prep.loadings(list(eta1=paste0('y', 1:4)), paste0("lambda_", 1:4), idvar='eta1')
-##' 
-##' #Single factor model with one latent variable fixing first loading
-##' # and freely estimated intercept
-##' prep.loadings(list(eta1=paste0('y', 1:4)), paste0("lambda_", 2:4),
-##'  intercept=TRUE)
-##' 
-##' #Single factor model with one latent variable fixing first loading
-##' # and freely estimated covariate effects for u1 and u2
-##' prep.loadings(list(eta1=paste0('y', 1:4)), paste0("lambda_", 2:4),
-##'  exo.names=paste0('u', 1:2))
-##' 
-##' # Two factor model with simple structure
-##' prep.loadings(list(eta1=paste0('y', 1:4), eta2=paste0('y', 5:7)), 
-##' paste0("lambda_", c(2:4, 6:7)))
-##' 
-##' #Two factor model with repeated use of a free parameter
-##' prep.loadings(list(eta1=paste0('y', 1:4), eta2=paste0('y', 5:8)), 
-##' paste0("lambda_", c(2:4, 6:7, 4)))
-##' 
-##' #Two factor model with a cross loading
-##' prep.loadings(list(eta1=paste0('y', 1:4), eta2=c('y5', 'y2', 'y6')), 
-##' paste0("lambda_", c("21", "31", "41", "22", "62")))
 prep.loadings <- function(map, params=NULL, idvar, exo.names=character(0), intercept=FALSE){
 	if(missing(idvar)){
 		idvar <- sapply(map, '[', 1)
@@ -1840,15 +1737,6 @@ prep.loadings <- function(map, params=NULL, idvar, exo.names=character(0), inter
 ##' @seealso 
 ##' Methods that can be used include: \code{\link{print}}, \code{\link{printex}}, \code{\link{show}} 
 ##'
-##' @examples
-##' prep.measurement(diag(1, 5), diag("lambda", 5))
-##' prep.measurement(matrix(1, 5, 5), diag(paste0("lambda_", 1:5)))
-##' prep.measurement(diag(1, 5), diag(0, 5)) #identity measurement model
-##' 
-##' #Regime-switching measurement model where the first latent variable is
-##' # active for regime 1, and the second latent variable is active for regime 2
-##' # No free parameters are present.
-##' prep.measurement(values.load=list(matrix(c(1,0), 1, 2), matrix(c(0, 1), 1, 2)))
 prep.measurement <- function(values.load, params.load=NULL, values.exo=NULL, params.exo=NULL, values.int=NULL, params.int=NULL,
                              obs.names, state.names, exo.names){
 	# Handle load
@@ -1968,27 +1856,6 @@ autoExtendSubRecipe <- function(values, params, formalName, informalName, maxReg
 ##' @seealso 
 ##' \code{\link{printex}} to show the covariance matrices in latex.
 ##'  
-##' @examples 
-##' # Two latent variables and one observed variable in a one-regime model
-##' Noise<-prep.noise(values.latent=diag(c(0.8, 1)), params.latent=diag(c('fixed', "e_x")), 
-##' values.observed=diag(1.5,1), params.observed=diag("e_y", 1))
-##' # For matrices that can be import to latex:
-##' printex(Noise,show=TRUE)
-##' # If you want to check specific arguments you've specified, for example,
-##' # values for variance structure of the latent variables
-##' Noise$values.latent
-##' # [[1]]
-##' #     [,1] [,2]
-##' # [1,]  0.8    0
-##' # [2,]  0.0    1
-##' 
-##' # Two latent variables and one observed variable in a two-regime model
-##' Noise<-prep.noise(values.latent=list(diag(c(0.8, 1)),diag(c(0.8, 1))), 
-##' params.latent=list(diag(c('fixed', "e_x1")),diag(c('fixed', "e_x2"))), 
-##' values.observed=list(diag(1.5,1),diag(0.5,1)), 
-##' params.observed=list(diag("e_y1", 1),diag("e_y2",1)))
-##' # If the error and noise structures are assumed to be the same across regimes,
-##' #  it is okay to use matrices instead of lists.
 prep.noise <- function(values.latent, params.latent, values.observed, params.observed){
 	# Handle latent covariance
 	r <- coProcessValuesParams(values.latent, params.latent)
@@ -2114,58 +1981,6 @@ checkSymmetric <- function(m, name="matrix"){
 ##' @seealso 
 ##' Methods that can be used include: \code{\link{print}}, \code{\link{printex}}, \code{\link{show}} 
 ##'
-##' @examples
-##' #Two-regime example with a covariate, x; log odds (LO) parameters represented in default form,
-##' #2nd regime set to be the reference regime (i.e., have LO parameters all set to 0).
-##' #The values and params matrices are of size 2 (numRegimes=2) x 4 (numRegimes*(numCovariates+1)).
-##' #    The LO of staying within the 1st regime (corresponding to the (1,1) entry in the
-##' #              2 x 2 transition probability matrix for the 2 regimes) = a_11 + d_11*x
-##' #    The log odds of switching from the 1st to the 2nd regime (the (1,2) entry in the
-##' #              transition probability matrix) = 0
-##' #    The log odds of moving from regime 2 to regime 1 (the (2,1) entry) = a_21 + d_21*x
-##' #    The log odds of staying within the 2nd regime (the (2,2) entry) = 0
-##' b <- prep.regimes(
-##' values=matrix(c(8,-1,rep(0,2),
-##'                -4,.1,rep(0,2)),
-##'              nrow=2, ncol=4, byrow=TRUE), 
-##' params=matrix(c("a_11","d_11x",rep("fixed",2),
-##'                "a_21","d_21x",rep("fixed",2)), 
-##'              nrow=2, ncol=4, byrow=TRUE), covariates=c("x"))
-##'  
-##' # Same example as above, but expressed in deviation form by specifying 'deviation = TRUE'
-##' #    The LO of staying within the 1st regime (corresponding to the (1,1) entry in the
-##' #              2 x 2 transition probability matrix for the 2 regimes) = a_21 + a_11 + d_11*x
-##' #    The log odds of switching from the 1st to the 2nd regime (the (1,2) entry in the
-##' #              transition probability matrix) = 0
-##' #    The log odds of moving from regime 2 to regime 1 (the (2,1) entry) = a_21 + d_21*x
-##' #    The log odds of staying within the 2nd regime (the (2,2) entry) = 0            
-##' b <- prep.regimes(
-##' values=matrix(c(8,-1,rep(0,2),
-##'                -4,.1,rep(0,2)),
-##'              nrow=2, ncol=4, byrow=TRUE), 
-##' params=matrix(c("a_11","d_11x",rep("fixed",2),
-##'                "a_21","d_21x",rep("fixed",2)), 
-##'              nrow=2, ncol=4, byrow=TRUE), covariates=c("x"), deviation = TRUE)
-##'              
-##' #An example of regime-switching with no covariates. The diagonal entries are fixed
-##' #at zero for identification purposes
-##' b <- prep.regimes(values=matrix(0, 3, 3), 
-##' params=matrix(c('fixed', 'p12', 'p13', 
-##'                 'p21', 'fixed', 'p23', 
-##'                 'p31', 'p32', 'fixed'), 3, 3, byrow=TRUE))
-##' 
-##' #An example of regime-switching with no covariates. The parameters for the second regime are 
-##' #  fixed at zero for identification purposes, making the second regime the reference regime.
-##' b <- prep.regimes(values=matrix(0, 3, 3), 
-##' params=matrix(c('p11', 'fixed', 'p13',
-##'                 'p21', 'fixed', 'p23', 
-##'                 'p31', 'fixed', 'p33'), 3, 3, byrow=TRUE))
-##' 
-##' #2 regimes with three covariates
-##' b <- prep.regimes(values=matrix(c(0), 2, 8), 
-##' params=matrix(c(paste0('p', 8:15), rep(0, 8)), 2, 8), 
-##' covariates=c('x1', 'x2', 'x3'))
-##' 
 prep.regimes <- function(values, params, covariates, deviation=FALSE, refRow){
 	if(!missing(values)){
 		values <- preProcessValues(values)
@@ -2284,62 +2099,6 @@ autojacob<-function(formula,n){
 ##' dynr. However, in some cases, such as when the absolute function (abs) is used, the automatic
 ##' differentiation would fail and the user may need to provide his/her own Jacobian functions.
 ##'
-##' @examples
-##' # In this example, we present how to define the dynamics of a bivariate dual change score model
-##' # (McArdle, 2009). This is a linear model and the user does not need to worry about 
-##' # providing any jacobian function (the default). 
-##'  
-##' # We start by creating a list of formula that describes the model. In this model, we have four 
-##' # latent variables, which are "readLevel", "readSlope", "mathLevel", and "math Slope".  The right-
-##' # hand side of each formula gives a function that defines the dynamics.   
-##'  
-##'  formula =list(
-##'           list(readLevel~ (1+beta.read)*readLevel + readSlope + gamma.read*mathLevel,
-##'           readSlope~ readSlope,
-##'           mathLevel~ (1+beta.math)*mathLevel + mathSlope + gamma.math*readLevel, 
-##'           mathSlope~ mathSlope
-##'           ))
-##'
-##' # Then we use prep.formulaDynamics() to define the formula, starting value of the parameters in
-##' # the model, and state the model is in discrete time by setting isContinuousTime=FALSE.
-##'  
-##' dynm  <- prep.formulaDynamics(formula=formula,
-##'                              startval=c(beta.read = -.5, beta.math = -.5, 
-##'                                         gamma.read = .3, gamma.math = .03
-##'                              ), isContinuousTime=FALSE)
-##' 
-##' 
-##' # For a full demo example of regime switching nonlinear discrete time model, you
-##' # may refer to a tutorial on 
-##' # \url{https://quantdev.ssri.psu.edu/tutorials/dynr-rsnonlineardiscreteexample}
-##' 
-##' #Not run: 
-##' #For a full demo example that uses user-supplied analytic jacobian functions see:
-##' #demo(RSNonlinearDiscrete, package="dynr")
-##' formula <- list(
-##'     list(
-##'       x1 ~ a1*x1,
-##'       x2 ~ a2*x2),
-##'     list(
-##'       x1 ~ a1*x1 + c12*(exp(abs(x2)))/(1+exp(abs(x2)))*x2,
-##'       x2 ~ a2*x2 + c21*(exp(abs(x1)))/(1+exp(abs(x1)))*x1)
-##'   )
-##' jacob <- list(
-##'   list(x1~x1~a1,
-##'       x2~x2~a2),
-##'   list(x1~x1~a1,
-##'       x1~x2~c12*(exp(abs(x2))/(exp(abs(x2))+1)+x2*sign(x2)*exp(abs(x2))/(1+exp(abs(x2))^2)),
-##'       x2~x2~a2,
-##'       x2~x1~c21*(exp(abs(x1))/(exp(abs(x1))+1)+x1*sign(x1)*exp(abs(x1))/(1+exp(abs(x1))^2))))
-##' dynm <- prep.formulaDynamics(formula=formula, startval=c( a1=.3, a2=.4, c12=-.5, c21=-.5),
-##'                              isContinuousTime=FALSE, jacobian=jacob)
-##' 
-##' #For a full demo example that uses automatic jacobian functions (the default) see:
-##' #demo(RSNonlinearODE , package="dynr")
-##' formula=list(prey ~ a*prey - b*prey*predator, predator ~ -c*predator + d*prey*predator)
-##' dynm <- prep.formulaDynamics(formula=formula,
-##'                           startval=c(a = 2.1, c = 0.8, b = 1.9, d = 1.1),
-##'                           isContinuousTime=TRUE)
 prep.formulaDynamics <- function(formula, startval = numeric(0), isContinuousTime=FALSE, jacobian){
   if(length(startval) > 0 & is.null(names(startval))){
     stop('startval must be a named vector')
@@ -2408,22 +2167,6 @@ prep.formulaDynamics <- function(formula, startval = numeric(0), isContinuousTim
 ##' @seealso 
 ##' Methods that can be used include: \code{\link{print}}, \code{\link{show}} 
 ##' 
-##' @examples 
-##' #Single-regime, continuous-time model. For further details run: 
-##' #demo(RSNonlinearDiscrete, package="dynr"))
-##' dynamics <- prep.matrixDynamics(
-##' values.dyn=matrix(c(0, -0.1, 1, -0.2), 2, 2),
-##' params.dyn=matrix(c('fixed', 'spring', 'fixed', 'friction'), 2, 2),
-##' isContinuousTime=TRUE)
-##' 
-##' #Two-regime, continuous-time model. For further details run: 
-##' #demo(RSNonlinearDiscrete, package="dynr"))
-##' dynamics <- prep.matrixDynamics(
-##' values.dyn=list(matrix(c(0, -0.1, 1, -0.2), 2, 2),
-##'                 matrix(c(0, -0.1, 1, 0), 2, 2)),
-##' params.dyn=list(matrix(c('fixed', 'spring', 'fixed', 'friction'), 2, 2),
-##'            matrix(c('fixed', 'spring', 'fixed', 'fixed'), 2, 2)),
-##' isContinuousTime=TRUE) 
 prep.matrixDynamics <- function(params.dyn=NULL, values.dyn, params.exo=NULL, values.exo=NULL, params.int=NULL, values.int=NULL, 
                                 covariates, isContinuousTime){
 	# Handle numerous cases of missing or non-list arguments
@@ -2461,9 +2204,10 @@ prep.matrixDynamics <- function(params.dyn=NULL, values.dyn, params.exo=NULL, va
 	# Check that the number of covariates implied by the 'covariates' arg is the same as that
 	#  implied by the number of columns in the 'values.exo' arg.
 	matCovariates <- lapply(lapply(values.exo, dim), "[[", 2)
+	if(length(matCovariates) == 0){matCovariates <- 0}
 	argCovariates <- length(covariates)
 	if(!all(matCovariates == argCovariates)){
-		msg <- paste0("Mind your teaspoons and tablespoons.  The 'exo.values' argument says there are\n (", paste(matCovariates, collapse=", "), ") covariates, but the 'covariates' arg says there are (", argCovariates, ").")
+		msg <- paste0("Mind your teaspoons and tablespoons.  The 'exo.values' argument says there are\n (", paste(matCovariates[[1]], collapse=", "), ") covariates, but the 'covariates' arg says there are (", argCovariates, ").")
 		stop(msg)
 	}
 	
@@ -2653,72 +2397,6 @@ processFormula<-function(formula.list){
 ##' @seealso 
 ##' Methods that can be used include: \code{\link{print}}, \code{\link{printex}}, \code{\link{show}} 
 ##'
-##' @examples
-##' #### No-covariates
-##' # Single regime, no covariates
-##' # latent states are position and velocity
-##' # initial position is free and called 'inipos'
-##' # initial slope is fixed at 1
-##' # initial covariance is fixed to a diagonal matrix of 1s
-##' initialNoC <- prep.initial(
-##' 	values.inistate=c(0, 1),
-##' 	params.inistate=c('inipos', 'fixed'),
-##' 	values.inicov=diag(1, 2),
-##' 	params.inicov=diag('fixed', 2))
-##' 
-##' #### One covariate
-##' # Single regime, one covariate on the inital mean
-##' # latent states are position and velocity
-##' # initial covariance is fixed to a diagonal matrix of 1s
-##' # initial latent means have
-##' #   nrow = numLatentState, ncol = numCovariates + 1
-##' # initial position has free intercept and free u1 effect
-##' # initial slope is fixed at 1
-##' initialOneC <- prep.initial(
-##' 	values.inistate=matrix(
-##' 		c(0, .5,
-##' 		  1,  0), byrow=TRUE,
-##' 		nrow=2, ncol=2),
-##' 	params.inistate=matrix(
-##' 		c('iniPosInt', 'iniPosSlopeU1',
-##' 		'fixed', 'fixed'), byrow=TRUE,
-##' 		nrow=2, ncol=2),
-##' 	values.inicov=diag(1, 2),
-##' 	params.inicov=diag('fixed', 2),
-##' 	covariates='u1')
-##' 
-##' #### Regime-switching, one covariate
-##' # latent states are position and velocity
-##' # initial covariance is fixed to a diagonal matrix of 1s
-##' # initial latent means have
-##' #   nrow = numLatentState, ncol = numCovariates + 1
-##' # initial position has free intercept and free u1 effect
-##' # initial slope is fixed at 1
-##' # There are 3 regimes but the mean and covariance
-##' #   are not regime-switching.
-##' initialRSOneC <- prep.initial(
-##' 	values.regimep=matrix(
-##' 		c(1, 1,
-##' 		  0, 1,
-##' 		  0, 0), byrow=TRUE,
-##' 		nrow=3, ncol=2),
-##' 	params.regimep=matrix(
-##' 		c('r1int', 'r1slopeU1',
-##' 		  'r2int', 'r2slopeU2',
-##' 		  'fixed', 'fixed'), byrow=TRUE,
-##' 		nrow=3, ncol=2),
-##' 	values.inistate=matrix(
-##' 		c(0, .5,
-##' 		  1,  0), byrow=TRUE,
-##' 		nrow=2, ncol=2),
-##' 	params.inistate=matrix(
-##' 		c('iniPosInt', 'iniPosSlopeU1',
-##' 		'fixed', 'fixed'), byrow=TRUE,
-##' 		nrow=2, ncol=2),
-##' 	values.inicov=diag(1, 2),
-##' 	params.inicov=diag('fixed', 2),
-##' 	covariates='u1')
-##' 
 prep.initial <- function(values.inistate, params.inistate, values.inicov, params.inicov, values.regimep=1, params.regimep=0, covariates, deviation=FALSE, refRow){
 	if(missing(covariates)){
 		covariates <- character(0)
@@ -2870,12 +2548,6 @@ prep.initial <- function(values.inistate, params.inistate, values.inicov, params
 ##' the resultant covariance matrices are positive-definite. Thus, no additional
 ##' transformation functions are needed for variance-covariance parameters.
 ##' 
-##' @examples
-##' #Specifies a transformation recipe, r20, that subjects the parameters
-##' #'r10' and 'r20' to exponential transformation to ensure that they are positive.
-##' trans <-prep.tfun(formula.trans=list(r10~exp(r10), r20~exp(r20)),
-##'                   formula.inv=list(r10~log(r10),r20~log(r20)))
-##'
 prep.tfun<-function(formula.trans, formula.inv, transCcode = TRUE){
   #input: formula.trans=list(a~exp(a),b~b^2)
   #input: formula.inv=list(a~log(a),b~sqrt(b))

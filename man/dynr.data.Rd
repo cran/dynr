@@ -35,11 +35,4 @@ which can be missing.}
 \description{
 Create a list of data for parameter estimation (cooking dynr) using \code{\link{dynr.cook}}
 }
-\examples{
-data(EMGsim)
-dd <- dynr.data(EMGsim, id = 'id', time = 'time', observed = 'EMG', covariates = 'self')
-
-z <- ts(matrix(rnorm(300), 100, 3), start = c(1961, 1), frequency = 12)
-dz <- dynr.data(z)
-}
 

@@ -4,39 +4,65 @@
 \alias{dynr.mi}
 \title{Multiple Imputation of dynrModel objects}
 \usage{
-dynr.mi(model, which.aux, m = 5, iter, imp.obs = FALSE, imp.exo = FALSE,
-  lag, which.lag, leads = FALSE, diag = TRUE, cook.save = FALSE,
-  seed = NA)
+dynr.mi(dynrModel, which.aux = NULL, which.lag = NULL, lag = 0,
+  which.lead = NULL, lead = 0, m = 5, iter = 5, imp.obs = FALSE,
+  imp.exo = TRUE, diag = TRUE, Rhat = 1.1, conf.level = 0.95,
+  verbose = TRUE, seed = NA)
 }
 \arguments{
-\item{model}{dynrModel object}
+\item{dynrModel}{dynrModel object. data and model setup}
 
-\item{which.aux}{names of auxiliary variables used in imputation}
+\item{which.aux}{character. names of the auxiliary variables used in the imputation model}
 
-\item{m}{number of multiple imputations}
+\item{which.lag}{character. names of the variables to create lagged responses for imputation purposes}
 
-\item{iter}{number of iterations in one imputation}
+\item{lag}{integer. number of lags of variables in the imputation model}
 
-\item{imp.obs}{logical. whether to impute the observed variables}
+\item{which.lead}{character. names of the variables to create leading responses for imputation purposes}
 
-\item{imp.exo}{logical. whether to impute the exogenous variables}
+\item{lead}{integer. number of leads of variables in the imputation model}
 
-\item{lag}{numeric. the number of lags to use}
+\item{m}{integer. number of multiple imputations}
 
-\item{which.lag}{names of variables to create lags on}
+\item{iter}{integer. number of MCMC iterations in each imputation}
 
-\item{leads}{logical. whether to use lags or leads}
+\item{imp.obs}{logical. flag to impute the observed dependent variables}
 
-\item{diag}{logical. whether to use convergence diagnostics}
+\item{imp.exo}{logical. flag to impute the exogenous variables}
 
-\item{cook.save}{logical. whether to save dynr.cook object}
+\item{diag}{logical. flag to use convergence diagnostics}
 
-\item{seed}{integer. a single value used to set seed in imputation}
+\item{Rhat}{numeric. value of the Rhat statistic used as the criterion in convergence diagnostics}
+
+\item{conf.level}{numeric. confidence level used to generate confidence intervals}
+
+\item{verbose}{logical. flag to print the intermediate output during the estimation process}
+
+\item{seed}{integer. random number seed to be used in the MI procedure}
+}
+\value{
+an object of `dynrMi' class
+that is a list containing:
+1. the imputation information, including a data set 
+containing structured lagged and leading variables and 
+a `mids' object from mice() function;
+2. the diagnostic information, including trace plots,
+an Rhat plot and a matrix containing Rhat values;
+3. the estimation results, including parameter estimates,
+standard error estimates and confidence intervals.
 }
 \description{
 Multiple Imputation of dynrModel objects
 }
-\details{
-This function is in alpha-testing form.  Please do not use or rely on it for now. A full implementation is in progress.
+\references{
+Ji, L., Chow, S-M., Schermerhorn, A.C., Jacobson, N.C., & Cummings, E.M. (2018). Handling 
+Missing Data in the Modeling of Intensive Longitudinal Data. Structural Equation Modeling: 
+A Multidisciplinary Journal, 1-22.
+
+Yanling Li, Linying Ji, Zita Oravecz, Timothy R. Brick,
+Michael D. Hunter, and Sy-Miin Chow. (2019).
+dynr.mi: An R Program for Multiple Imputation in Dynamic Modeling.
+International Journal of Computer, Electrical, Automation, Control
+and Information Engineering, 13, 302-311.
 }
 

@@ -18,13 +18,13 @@ Sys.setenv(TEXINPUTS = getwd(),
 
 
 ###################################################
-### code chunk number 2: NonlinearContinuousTimeModels.Rnw:114-115 (eval = FALSE)
+### code chunk number 2: NonlinearContinuousTimeModels.Rnw:113-114 (eval = FALSE)
 ###################################################
 ## file.edit(system.file("demo", "NonlinearODE.R", package = "dynr"))
 
 
 ###################################################
-### code chunk number 3: NonlinearContinuousTimeModels.Rnw:119-126 (eval = FALSE)
+### code chunk number 3: NonlinearContinuousTimeModels.Rnw:118-125 (eval = FALSE)
 ###################################################
 ## #------------------------------------------------------------------------------
 ## # Example 1: Nonlinear Continuous-time Models
@@ -36,7 +36,7 @@ Sys.setenv(TEXINPUTS = getwd(),
 
 
 ###################################################
-### code chunk number 4: NonlinearContinuousTimeModels.Rnw:146-153 (eval = FALSE)
+### code chunk number 4: NonlinearContinuousTimeModels.Rnw:145-152 (eval = FALSE)
 ###################################################
 ## # dynamics
 ## preyFormula <- prey ~ a * prey - b * prey * predator
@@ -48,13 +48,13 @@ Sys.setenv(TEXINPUTS = getwd(),
 
 
 ###################################################
-### code chunk number 5: NonlinearContinuousTimeModels.Rnw:160-161 (eval = FALSE)
+### code chunk number 5: NonlinearContinuousTimeModels.Rnw:159-160 (eval = FALSE)
 ###################################################
 ## file.edit(system.file("demo", "RSNonlinearDiscrete.R", package = "dynr"))
 
 
 ###################################################
-### code chunk number 6: NonlinearContinuousTimeModels.Rnw:174-186 (eval = FALSE)
+### code chunk number 6: NonlinearContinuousTimeModels.Rnw:173-185 (eval = FALSE)
 ###################################################
 ## # Measurement (factor loadings)
 ## meas <- prep.measurement(
@@ -71,7 +71,7 @@ Sys.setenv(TEXINPUTS = getwd(),
 
 
 ###################################################
-### code chunk number 7: NonlinearContinuousTimeModels.Rnw:191-198 (eval = FALSE)
+### code chunk number 7: NonlinearContinuousTimeModels.Rnw:190-197 (eval = FALSE)
 ###################################################
 ## #measurement and dynamics covariances
 ## mdcov <- prep.noise(
@@ -83,7 +83,7 @@ Sys.setenv(TEXINPUTS = getwd(),
 
 
 ###################################################
-### code chunk number 8: NonlinearContinuousTimeModels.Rnw:207-214 (eval = FALSE)
+### code chunk number 8: NonlinearContinuousTimeModels.Rnw:206-213 (eval = FALSE)
 ###################################################
 ## # Initial conditions on the latent state and covariance
 ## initial <- prep.initial(
@@ -95,7 +95,7 @@ Sys.setenv(TEXINPUTS = getwd(),
 
 
 ###################################################
-### code chunk number 9: NonlinearContinuousTimeModels.Rnw:219-224 (eval = FALSE)
+### code chunk number 9: NonlinearContinuousTimeModels.Rnw:218-223 (eval = FALSE)
 ###################################################
 ## #constraints
 ## trans <- prep.tfun(formula.trans = list(a ~ exp(a), b ~ exp(b), 
@@ -105,7 +105,7 @@ Sys.setenv(TEXINPUTS = getwd(),
 
 
 ###################################################
-### code chunk number 10: NonlinearContinuousTimeModels.Rnw:234-255 (eval = FALSE)
+### code chunk number 10: NonlinearContinuousTimeModels.Rnw:233-254 (eval = FALSE)
 ###################################################
 ## #------------------------------------------------------------------------------
 ## # Cooking materials
@@ -131,7 +131,7 @@ Sys.setenv(TEXINPUTS = getwd(),
 
 
 ###################################################
-### code chunk number 11: NonlinearContinuousTimeModels.Rnw:262-276 (eval = FALSE)
+### code chunk number 11: NonlinearContinuousTimeModels.Rnw:261-275 (eval = FALSE)
 ###################################################
 ## # Examine results
 ## # True parameter values a = 2, b = 2, c = 1, d = 1
@@ -150,7 +150,7 @@ Sys.setenv(TEXINPUTS = getwd(),
 
 
 ###################################################
-### code chunk number 12: NonlinearContinuousTimeModels.Rnw:282-290 (eval = FALSE)
+### code chunk number 12: NonlinearContinuousTimeModels.Rnw:281-289 (eval = FALSE)
 ###################################################
 ## #------------------------------------------------------------------------------
 ## # Example 2: Regime-Switching Nonlinear Continuous-time Model
@@ -163,7 +163,7 @@ Sys.setenv(TEXINPUTS = getwd(),
 
 
 ###################################################
-### code chunk number 13: NonlinearContinuousTimeModels.Rnw:294-297 (eval = FALSE)
+### code chunk number 13: NonlinearContinuousTimeModels.Rnw:293-296 (eval = FALSE)
 ###################################################
 ## cPreyFormula <- prey ~ a * prey - e * prey ^ 2 - b * prey * predator
 ## cPredFormula <- predator ~ f * predator - c * predator ^ 2 + d * prey * predator
@@ -171,7 +171,7 @@ Sys.setenv(TEXINPUTS = getwd(),
 
 
 ###################################################
-### code chunk number 14: NonlinearContinuousTimeModels.Rnw:301-305 (eval = FALSE)
+### code chunk number 14: NonlinearContinuousTimeModels.Rnw:300-304 (eval = FALSE)
 ###################################################
 ## rsFormula <- list(ppFormula, cpFormula)
 ## dynm <- prep.formulaDynamics(formula = rsFormula,
@@ -180,7 +180,7 @@ Sys.setenv(TEXINPUTS = getwd(),
 
 
 ###################################################
-### code chunk number 15: NonlinearContinuousTimeModels.Rnw:342-360 (eval = FALSE)
+### code chunk number 15: NonlinearContinuousTimeModels.Rnw:341-359 (eval = FALSE)
 ###################################################
 ## # Regime-switching function
 ## # The RS model assumes that each element of the transition probability 
@@ -203,13 +203,13 @@ Sys.setenv(TEXINPUTS = getwd(),
 
 
 ###################################################
-### code chunk number 16: NonlinearContinuousTimeModels.Rnw:384-385 (eval = FALSE)
+### code chunk number 16: NonlinearContinuousTimeModels.Rnw:383-384 (eval = FALSE)
 ###################################################
 ## file.edit(system.file("demo", "RSNonlinearODE.R", package = "dynr"))
 
 
 ###################################################
-### code chunk number 17: NonlinearContinuousTimeModels.Rnw:388-433 (eval = FALSE)
+### code chunk number 17: NonlinearContinuousTimeModels.Rnw:387-432 (eval = FALSE)
 ###################################################
 ## # Measurement (factor loadings)
 ## meas <- prep.measurement(
@@ -259,7 +259,7 @@ Sys.setenv(TEXINPUTS = getwd(),
 
 
 ###################################################
-### code chunk number 18: NonlinearContinuousTimeModels.Rnw:440-463 (eval = FALSE)
+### code chunk number 18: NonlinearContinuousTimeModels.Rnw:439-462 (eval = FALSE)
 ###################################################
 ## # Cooking materials
 ## 
@@ -287,7 +287,7 @@ Sys.setenv(TEXINPUTS = getwd(),
 
 
 ###################################################
-### code chunk number 19: NonlinearContinuousTimeModels.Rnw:467-471 (eval = FALSE)
+### code chunk number 19: NonlinearContinuousTimeModels.Rnw:466-470 (eval = FALSE)
 ###################################################
 ## dynr.ggplot(res2.2, model2.2, style = 2, 
 ##   names.regime = c("Summer", "Winter"),
@@ -296,7 +296,7 @@ Sys.setenv(TEXINPUTS = getwd(),
 
 
 ###################################################
-### code chunk number 20: NonlinearContinuousTimeModels.Rnw:493-500 (eval = FALSE)
+### code chunk number 20: NonlinearContinuousTimeModels.Rnw:492-499 (eval = FALSE)
 ###################################################
 ## plotFormula(model2.2, ParameterAs = names(model2.2)) +
 ##   ggtitle("(A)") +

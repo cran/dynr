@@ -134,9 +134,6 @@ setReplaceMethod("$", "dynrModel",
 ##' @return
 ##' A single number. The total number of observations across all IDs.
 ##' 
-##' @examples
-##' # Let rawModel be the output from dynr.model
-##' #nobs(rawModel)
 nobs.dynrModel <- function(object, ...){
 	dim(object$data$observed)[1]
 }
@@ -529,17 +526,6 @@ setMethod("printex", "dynrModel",
 ##' 	\item \code{coef} gives the free parameter starting values.  Free parameters can also be assigned with \code{coef(model) <- aNamedVectorOfCoefficients}
 ##' }
 ##' 
-##' @examples
-##' #rsmod <- dynr.model(dynamics=recDyn, measurement=recMeas, noise=recNoise, 
-##' #    initial=recIni, regimes=recReg, data=dd, outfile="RSLinearDiscrete.c")
-##'
-##' #Set relative tolerance on function value via 'options':
-##' #rsmod <- dynr.model(dynamics=recDyn, measurement=recMeas, noise=recNoise, 
-##' #    initial=recIni, regimes=recReg, data=dd, outfile="RSLinearDiscrete.c",
-##' #    options=list(ftol_rel=as.numeric(1e-6)))
-##' 
-##' #For a full demo example, see:
-##' #demo(RSLinearDiscrete , package="dynr")
 dynr.model <- function(dynamics, measurement, noise, initial, data, ..., outfile = tempfile()){
   #check the order of the names 
   if (class(dynamics) == "dynrDynamicsFormula"){
@@ -572,15 +558,17 @@ dynr.model <- function(dynamics, measurement, noise, initial, data, ..., outfile
       stop("Please check the data. The time points are irregularly spaced even with missingness inserted.")
     }else if (any(time.check["full",])){
       if ("covariates" %in% names(data)){
+        names(data$covariates) <- data$covariate.names
+        names(data$observed) <- data$observed.names
         data.dataframe <- data.frame(id = data$id, time = data$time, data$observed, data$covariates)
         
         data.new.dataframe <- plyr::ddply(data.dataframe, "id", function(df){
           new = data.frame(id = unique(df$id), time = seq(df$time[1], df$time[length(df$time)], by = min(diff(df$time))))
           out = merge(new, df, all.x = TRUE)
         })
-        
-        data <- dynr.data(data.new.dataframe, observed = paste0("obs", 1:length(data$observed.names)), covariates = paste0("covar", 1:length(data$covariate.names)))
+        data <- dynr.data(data.new.dataframe, observed = data$observed.names, covariates = data$covariate.names)
       }else{
+        names(data$observed) <- data$observed.names
         data.dataframe <- data.frame(id = data$id, time = data$time, data$observed)
         
         data.new.dataframe <- plyr::ddply(data.dataframe, "id", function(df){
@@ -588,13 +576,20 @@ dynr.model <- function(dynamics, measurement, noise, initial, data, ..., outfile
           out = merge(new, df, all.x = TRUE)
         })
         
-        data <- dynr.data(data.new.dataframe, observed = paste0("obs", 1:length(data$observed.names)))
+        data <- dynr.data(data.new.dataframe, observed = data$observed.names)
       }
     }
   }
   
   # gather inputs
   inputs <- list(dynamics=dynamics, measurement=measurement, noise=noise, initial=initial, ...)
+  if('armadillo' %in% names(inputs)){inputs$armadillo <- NULL}
+  # beginning of new version to actually process the 'options' argument correctly
+  #  # gather inputs
+  #  extraArg <- list(...)
+  #  extraNames <- match.arg(names(extraArg), c('options', 'regimes', 'transform'), several.ok=TRUE)
+  #  inputs <- list(dynamics=dynamics, measurement=measurement, noise=noise, initial=initial, ...)
+  #  if('armadillo' %in% names(inputs)){inputs$armadillo <- NULL}
 
   # Figure out what the unique parameters are
   all.params <- unlist(sapply(inputs, slot, name='paramnames'))

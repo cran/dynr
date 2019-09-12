@@ -14,9 +14,4 @@ This function returns a string with the current version number of dynr. Optional
 \description{
 Current Version String
 }
-\examples{
-dynr.version()
-dynr.version(verbose=FALSE)
-packageVersion("dynr")
-}
 

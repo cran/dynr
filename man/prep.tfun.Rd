@@ -43,11 +43,4 @@ are automatically subjected to transformation functions to ensure that
 the resultant covariance matrices are positive-definite. Thus, no additional
 transformation functions are needed for variance-covariance parameters.
 }
-\examples{
-#Specifies a transformation recipe, r20, that subjects the parameters
-#'r10' and 'r20' to exponential transformation to ensure that they are positive.
-trans <-prep.tfun(formula.trans=list(r10~exp(r10), r20~exp(r20)),
-                  formula.inv=list(r10~log(r10),r20~log(r20)))
-
-}
 

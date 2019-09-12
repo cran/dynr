@@ -69,9 +69,6 @@ NONFINITE_FIT \tab -6 \tab Fit function is not finite (i.e., is NA, NaN, Inf or 
 }
 The last row of this table corresponding to an exit code of -6, is not from NLOPT, but rather is specific to the \code{dynr} package.
 }
-\examples{
-#fitted.model <- dynr.cook(model)
-}
 \seealso{
 \code{\link{autoplot}}, \code{\link{coef}}, \code{\link{confint}},
 \code{\link{deviance}}, \code{\link{initialize}}, \code{\link{logLik}},
