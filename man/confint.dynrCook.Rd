@@ -32,6 +32,10 @@ The \code{parm} argument can be a numeric vector or a vector of names. If it is 
 
 These are Wald-type confidence intervals based on the standard errors of the (transformed) parameters.  Wald-type confidence intervals are known to be inaccurate for variance parameters, particularly when the variance is near zero (See references for issues with Wald-type confidence intervals).
 }
+\examples{
+# Let cookedModel be the output from dynr.cook
+#confint(cookedModel)
+}
 \references{
 Pritikin, J.N., Rappaport, L.M. & Neale, M.C.  (In Press). Likelihood-Based Confidence Intervals for a Parameter With an Upper or Lower Bound.  Structural Equation Modeling.  DOI: 10.1080/10705511.2016.1275969
 

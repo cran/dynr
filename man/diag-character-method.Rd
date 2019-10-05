@@ -24,4 +24,7 @@ The default behavior for missing \code{nrow} and/or \code{ncol} arguments is the
 as for the \code{\link{diag}} function in the base package.  Off-diagonal entries
 are filled with "0".
 }
+\examples{
+diag(letters[1:3])
+}
 

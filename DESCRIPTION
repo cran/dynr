@@ -1,16 +1,14 @@
 Package: dynr
-Date: 2019-09-12
+Date: 2019-10-04
 Title: Dynamic Modeling in R
 Authors@R: c(person("Lu", "Ou", role="aut", email="lzo114@psu.edu"),
-    person(c("Michael", "D."), "Hunter", role=c("aut", "cre"), email="mhunter.ou@gmail.com"),
-    person("Sy-Miin", "Chow", role="aut"))
-Author: Lu Ou [aut],
-  Michael D. Hunter [aut, cre],
-  Sy-Miin Chow [aut]
+    person(c("Michael", "D."), "Hunter", role=c("aut", "cre"), email="mhunter.ou@gmail.com", comment=c(ORCID = "0000-0002-3651-6709")),
+    person("Sy-Miin", "Chow", role="aut", comment=c(ORCID = "0000-0003-1938-027X")))
 Maintainer: Michael D. Hunter <mhunter.ou@gmail.com>
 Depends: R (>= 3.0.0), ggplot2
 Imports: MASS, Matrix, numDeriv, xtable, latex2exp, grid, reshape2,
-        plyr, mice, magrittr, Rdpack, methods
+        plyr, mice, magrittr, Rdpack, methods, fda, car, stringi,
+        tibble, deSolve
 Suggests: testthat, roxygen2 (>= 3.1), knitr, rmarkdown
 VignetteBuilder: knitr
 Description: Intensive longitudinal data have become increasingly prevalent in
@@ -36,10 +34,14 @@ LazyData: yes
 Collate: 'dynrData.R' 'dynrRecipe.R' 'dynrModelInternal.R'
         'dynrModel.R' 'dynrCook.R' 'dynrPlot.R' 'dynrFuncAddress.R'
         'dynrMi.R' 'dynrTaste.R' 'dynrVersion.R' 'dataDoc.R'
+        'dynrGetDerivs.R'
 RdMacros: Rdpack
 Biarch: true
-Version: 0.1.14-85
+Version: 0.1.15-1
 RoxygenNote: 5.0.1
-Packaged: 2019-09-12 16:25:47 UTC; mhunter
+Packaged: 2019-10-04 20:36:26 UTC; mhunter
+Author: Lu Ou [aut],
+  Michael D. Hunter [aut, cre] (<https://orcid.org/0000-0002-3651-6709>),
+  Sy-Miin Chow [aut] (<https://orcid.org/0000-0003-1938-027X>)
 Repository: CRAN
-Date/Publication: 2019-09-12 22:40:11 UTC
+Date/Publication: 2019-10-05 06:50:02 UTC

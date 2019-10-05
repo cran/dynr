@@ -52,4 +52,16 @@ There are several available methods for \code{dynrModel} objects.
 	\item \code{coef} gives the free parameter starting values.  Free parameters can also be assigned with \code{coef(model) <- aNamedVectorOfCoefficients}
 }
 }
+\examples{
+#rsmod <- dynr.model(dynamics=recDyn, measurement=recMeas, noise=recNoise, 
+#    initial=recIni, regimes=recReg, data=dd, outfile="RSLinearDiscrete.c")
+
+#Set relative tolerance on function value via 'options':
+#rsmod <- dynr.model(dynamics=recDyn, measurement=recMeas, noise=recNoise, 
+#    initial=recIni, regimes=recReg, data=dd, outfile="RSLinearDiscrete.c",
+#    options=list(ftol_rel=as.numeric(1e-6)))
+
+#For a full demo example, see:
+#demo(RSLinearDiscrete , package="dynr")
+}
 

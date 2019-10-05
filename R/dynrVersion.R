@@ -1,5 +1,5 @@
 
-gitVersion <- "v0.1.14-85-g55607dc"
+gitVersion <- "v0.1.15-1-gdb5812a"
 
 ##' Current Version String
 ##'
@@ -7,6 +7,10 @@ gitVersion <- "v0.1.14-85-g55607dc"
 ##' 
 ##' This function returns a string with the current version number of dynr. Optionally (with verbose = TRUE (the default)), it prints a message containing the version of R and the platform.  The primary purpose of the function is for bug reporting.
 ##' 
+##' @examples
+##' dynr.version()
+##' dynr.version(verbose=FALSE)
+##' packageVersion("dynr")
 dynr.version <- function (verbose=TRUE) {
 	pvers <-  packageVersion("dynr")
 	if(verbose){

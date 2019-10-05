@@ -3,7 +3,7 @@
 \docType{data}
 \name{TrueInit_Y14}
 \alias{TrueInit_Y14}
-\title{Another simulated multilevel multi-subject time series of a Van der Pol Oscillator}
+\title{Simulated multilevel multi-subject time series of a Van der Pol Oscillator}
 \format{A data frame with 60,000 rows and 10 variables}
 \usage{
 data(TrueInit_Y14)

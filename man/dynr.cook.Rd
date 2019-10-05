@@ -44,6 +44,7 @@ and smoothed regime probability.
 \code{eta_filtered}, \code{error_cov_filtered} and \code{pr_t_given_t} are respectively 
 time-varying filtered latent variable mean estimates, filtered error covariance matrix estimates, 
 and filtered regime probability.
+Note that if \code{theta.formula} is provided in \code{dynrModel@dynamics}, this assumes  that random effects are present in the dynamic equation. This would call an internal function to insert the random effect components as additional state variables. In this case, the last set of elements (rows) in \code{eta_smooth_final} would contain the estimated random effect components.
 
 When \code{debug_flag} is TRUE, then additional information is passed into the cooked model. 
 \code{eta_predicted}, \code{error_cov_predicted}, \code{innov_vec}, and \code{residual_cov} are respectively 
@@ -68,6 +69,9 @@ FORCED_STOP \tab -5 \tab Halted because of a forced termination: the user called
 NONFINITE_FIT \tab -6 \tab Fit function is not finite (i.e., is NA, NaN, Inf or -Inf). \cr
 }
 The last row of this table corresponding to an exit code of -6, is not from NLOPT, but rather is specific to the \code{dynr} package.
+}
+\examples{
+#fitted.model <- dynr.cook(model)
 }
 \seealso{
 \code{\link{autoplot}}, \code{\link{coef}}, \code{\link{confint}},

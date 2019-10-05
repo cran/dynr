@@ -69,4 +69,7 @@ The argument \code{dynrTaste} can be \code{NULL},
 if user-specified outliers are offered by the arguments
 \code{delta_L} and \code{delta_O}.
 }
+\examples{
+# dynrTaste2 <- dynr.taste2(dynrModel, dynrCook, dynrTaste)
+}
 

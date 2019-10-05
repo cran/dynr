@@ -20,4 +20,8 @@ Extract the number of observations for a dynrModel object
 \details{
 We return the total number of rows of data, adding up the number of time points for each person. For some purposes, you may want the mean number of observations per person or the number of people instead.  These are not currently supported via \code{nobs}.
 }
+\examples{
+# Let rawModel be the output from dynr.model
+#nobs(rawModel)
+}
 

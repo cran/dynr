@@ -5,7 +5,7 @@
 \title{Recipe function for specifying dynamic functions using formulas}
 \usage{
 prep.formulaDynamics(formula, startval = numeric(0),
-  isContinuousTime = FALSE, jacobian)
+  isContinuousTime = FALSE, jacobian, ...)
 }
 \arguments{
 \item{formula}{a list of formulas specifying the drift or state-transition 
@@ -24,6 +24,23 @@ the same variable on the righ hand side is its previous state.}
 containing the analytic differentiation function of the dynamic functions with respect to
 the latent variables. If this is not provided, dynr will invoke an automatic differentiation
 procedure to compute the jacobian functions.}
+
+\item{...}{further named arguments. Some of these arguments may include:
+
+theta.formula = a list consisting of formula(s) of the form 
+ list (par ~ 1 * b_0  + covariate_1 * b_1 + ... + covariate_p * b_p 
+ + 1 * rand_par), where par is a parameter is a unit- (e.g., person-) 
+ specific that appears in a dynamic formula and is assumed to follow
+ a linear mixed effects structure. Here, b_p are fixed effects 
+ parameters; covariate_1, ..., covariate_p are known covariates as ??pdeclared in
+ dynr.data, and b_p is a random effect component representing unit i's random deviation
+ in par value from that predicted by b_0 + covariate_1*b_1 + ... + covariate_p*b_p 
+
+random.names = names of random effect components in the theta.formula
+
+random.params.inicov = names of elements in the covariance matrix of the random effect components
+
+random.values.inicov = starting values of elements in the covariance matrix of the random effect components}
 }
 \description{
 Recipe function for specifying dynamic functions using formulas
@@ -40,5 +57,66 @@ elements of first differentiations of the dynamic functions with respect to the 
 in the model. For most nonlinear models, such differentiations can be handled automatically by
 dynr. However, in some cases, such as when the absolute function (abs) is used, the automatic
 differentiation would fail and the user may need to provide his/her own Jacobian functions.
+When theta.formula and other accompanying elements in "..." are provided, the program
+automatically inserts the random effect components specified in random.names as additional
+latent (state) variables in the model, and estimate (cook) this expanded model. Do check
+that the expanded model satisfies conditions such as observability for the estimation to work.
+}
+\examples{
+# In this example, we present how to define the dynamics of a bivariate dual change score model
+# (McArdle, 2009). This is a linear model and the user does not need to worry about 
+# providing any jacobian function (the default). 
+ 
+# We start by creating a list of formula that describes the model. In this model, we have four 
+# latent variables, which are "readLevel", "readSlope", "mathLevel", and "math Slope".  The right-
+# hand side of each formula gives a function that defines the dynamics.   
+ 
+ formula =list(
+          list(readLevel~ (1+beta.read)*readLevel + readSlope + gamma.read*mathLevel,
+          readSlope~ readSlope,
+          mathLevel~ (1+beta.math)*mathLevel + mathSlope + gamma.math*readLevel, 
+          mathSlope~ mathSlope
+          ))
+
+# Then we use prep.formulaDynamics() to define the formula, starting value of the parameters in
+# the model, and state the model is in discrete time by setting isContinuousTime=FALSE.
+ 
+dynm  <- prep.formulaDynamics(formula=formula,
+                             startval=c(beta.read = -.5, beta.math = -.5, 
+                                        gamma.read = .3, gamma.math = .03
+                             ), isContinuousTime=FALSE)
+
+
+# For a full demo example of regime switching nonlinear discrete time model, you
+# may refer to a tutorial on 
+# \\url{https://quantdev.ssri.psu.edu/tutorials/dynr-rsnonlineardiscreteexample}
+
+#Not run: 
+#For a full demo example that uses user-supplied analytic jacobian functions see:
+#demo(RSNonlinearDiscrete, package="dynr")
+formula <- list(
+    list(
+      x1 ~ a1*x1,
+      x2 ~ a2*x2),
+    list(
+      x1 ~ a1*x1 + c12*(exp(abs(x2)))/(1+exp(abs(x2)))*x2,
+      x2 ~ a2*x2 + c21*(exp(abs(x1)))/(1+exp(abs(x1)))*x1)
+  )
+jacob <- list(
+  list(x1~x1~a1,
+      x2~x2~a2),
+  list(x1~x1~a1,
+      x1~x2~c12*(exp(abs(x2))/(exp(abs(x2))+1)+x2*sign(x2)*exp(abs(x2))/(1+exp(abs(x2))^2)),
+      x2~x2~a2,
+      x2~x1~c21*(exp(abs(x1))/(exp(abs(x1))+1)+x1*sign(x1)*exp(abs(x1))/(1+exp(abs(x1))^2))))
+dynm <- prep.formulaDynamics(formula=formula, startval=c( a1=.3, a2=.4, c12=-.5, c21=-.5),
+                             isContinuousTime=FALSE, jacobian=jacob)
+
+#For a full demo example that uses automatic jacobian functions (the default) see:
+#demo(RSNonlinearODE , package="dynr")
+formula=list(prey ~ a*prey - b*prey*predator, predator ~ -c*predator + d*prey*predator)
+dynm <- prep.formulaDynamics(formula=formula,
+                          startval=c(a = 2.1, c = 0.8, b = 1.9, d = 1.1),
+                          isContinuousTime=TRUE)
 }
 

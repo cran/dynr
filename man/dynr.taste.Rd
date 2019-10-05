@@ -62,6 +62,17 @@ Compute shocks and chi-squared diagnostics following
 Chow, Hamaker, and Allaire (2009).  Using Innovative Outliers to
 Detect Discrete Shifts in Dynamics in Group-Based State-Space Models
 }
+\examples{
+\dontrun{
+# See the demo for outlier detection, OutlierDetection.R
+dynrCook <- dynr.cook(dynrModel)
+dynrTaste <- dynr.taste(dynrModel, dynrCook)
+
+# Detect outliers related to 'eta1' out of, say, three latent
+# variables c("eta1", "eta2", "eta3"), and all measured variables.
+dynrTaste <- dynr.taste(dynrModel, dynrCook, which.state=c("eta1"))
+}
+}
 \references{
 Chow, S.-M., Hamaker, E. L., & Allaire, J. C. (2009).
 Using innovative outliers to detect discrete shifts in dynamics in group-based state-space models. _Multivariate Behavioral Research_, 44, 465-496.

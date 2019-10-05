@@ -54,6 +54,16 @@ standard error estimates and confidence intervals.
 \description{
 Multiple Imputation of dynrModel objects
 }
+\examples{
+# See the demo, MILinearDiscrete.R, for an illustrative example 
+# of using dynr.mi to implement multiple imputation with 
+# a vector autoregressive model
+# dynrMi <- dynr.mi(dynrModel, which.aux=c("x1","x2"), 
+# which.lag=c("wp","hp"), lag=1, which.lead=NULL, lead=0,
+# m=5, iter=5, imp.obs=FALSE, imp.exo=TRUE,
+# diag = TRUE, Rhat=1.1,
+# conf.level=0.95, verbose=FALSE, seed=12345)
+}
 \references{
 Ji, L., Chow, S-M., Schermerhorn, A.C., Jacobson, N.C., & Cummings, E.M. (2018). Handling 
 Missing Data in the Modeling of Intensive Longitudinal Data. Structural Equation Modeling: 

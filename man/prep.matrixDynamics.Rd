@@ -50,6 +50,23 @@ vectors/matrices are assumed to hold across regimes.
 
 \code{prep.matrixDynamics} serves as an alternative to \code{\link{prep.formulaDynamics}}.
 }
+\examples{
+#Single-regime, continuous-time model. For further details run: 
+#demo(RSNonlinearDiscrete, package="dynr"))
+dynamics <- prep.matrixDynamics(
+values.dyn=matrix(c(0, -0.1, 1, -0.2), 2, 2),
+params.dyn=matrix(c('fixed', 'spring', 'fixed', 'friction'), 2, 2),
+isContinuousTime=TRUE)
+
+#Two-regime, continuous-time model. For further details run: 
+#demo(RSNonlinearDiscrete, package="dynr"))
+dynamics <- prep.matrixDynamics(
+values.dyn=list(matrix(c(0, -0.1, 1, -0.2), 2, 2),
+                matrix(c(0, -0.1, 1, 0), 2, 2)),
+params.dyn=list(matrix(c('fixed', 'spring', 'fixed', 'friction'), 2, 2),
+           matrix(c('fixed', 'spring', 'fixed', 'fixed'), 2, 2)),
+isContinuousTime=TRUE) 
+}
 \seealso{
 Methods that can be used include: \code{\link{print}}, \code{\link{show}}
 }
