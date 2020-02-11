@@ -1,9 +1,15 @@
 Package: dynr
-Date: 2019-10-04
+Date: 2020-02-11
 Title: Dynamic Modeling in R
-Authors@R: c(person("Lu", "Ou", role="aut", email="lzo114@psu.edu"),
+Authors@R: c(person("Lu", "Ou", role="aut"),
     person(c("Michael", "D."), "Hunter", role=c("aut", "cre"), email="mhunter.ou@gmail.com", comment=c(ORCID = "0000-0002-3651-6709")),
-    person("Sy-Miin", "Chow", role="aut", comment=c(ORCID = "0000-0003-1938-027X")))
+    person("Sy-Miin", "Chow", role="aut", comment=c(ORCID = "0000-0003-1938-027X")),
+	person("Linying", "Ji", role="aut", email=""),
+	person("Meng", "Chen", role="aut", email=""),
+	person("Hui-Ju", "Hung", role="aut", email=""),
+	person("Jungmin", "Lee", role="aut", email="leejapply@gmail.com"),
+	person("Yanling", "Li", role="aut", email=""),
+	person("Jonathan", "Park", role="aut", email=""))
 Maintainer: Michael D. Hunter <mhunter.ou@gmail.com>
 Depends: R (>= 3.0.0), ggplot2
 Imports: MASS, Matrix, numDeriv, xtable, latex2exp, grid, reshape2,
@@ -37,11 +43,17 @@ Collate: 'dynrData.R' 'dynrRecipe.R' 'dynrModelInternal.R'
         'dynrGetDerivs.R'
 RdMacros: Rdpack
 Biarch: true
-Version: 0.1.15-1
+Version: 0.1.15-25
 RoxygenNote: 5.0.1
-Packaged: 2019-10-04 20:36:26 UTC; mhunter
+Packaged: 2020-02-11 16:44:25 UTC; mhunter
 Author: Lu Ou [aut],
   Michael D. Hunter [aut, cre] (<https://orcid.org/0000-0002-3651-6709>),
-  Sy-Miin Chow [aut] (<https://orcid.org/0000-0003-1938-027X>)
+  Sy-Miin Chow [aut] (<https://orcid.org/0000-0003-1938-027X>),
+  Linying Ji [aut],
+  Meng Chen [aut],
+  Hui-Ju Hung [aut],
+  Jungmin Lee [aut],
+  Yanling Li [aut],
+  Jonathan Park [aut]
 Repository: CRAN
-Date/Publication: 2019-10-05 06:50:02 UTC
+Date/Publication: 2020-02-11 19:10:05 UTC

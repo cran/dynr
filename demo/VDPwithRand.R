@@ -69,7 +69,7 @@ model <- dynr.model(dynamics=dynm, measurement=meas,
 
 
 # Estimate free parameters	
-fitted_model <- dynr.cook(model, optimization_flag = TRUE, hessian_flag = TRUE, verbose=TRUE, debug_flag=TRUE)
+fitted_model <- dynr.cook(model, verbose=FALSE)
 
 
 
@@ -87,8 +87,8 @@ summary(fitted_model)
 # Check the correlation between estimated b and true b:
 # estimated b in fitted_model@eta_smooth_final
 # true b in the in the 10th column of the input data set
-cor(fitted_model@eta_smooth_final[3,data$tstart[2:201]],
-    vdpData$trueb[data$tstart[2:201]])
+cor(fitted_model@eta_smooth_final[3,data$tstart[2:51]],
+    vdpData$trueb[data$tstart[2:51]])
 
 
 

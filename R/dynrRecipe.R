@@ -2304,6 +2304,20 @@ autojacob<-function(formula,n){
 prep.formulaDynamics <- function(formula, startval = numeric(0), isContinuousTime=FALSE, jacobian, ...){
   dots <- list(...)
 
+  # if the argument formula is not a list 
+  if(!is.list(formula)){
+    msg <- paste0(ifelse(plyr::is.formula(formula), "'formula' argument is a formula but ", ""),
+      "'formula'",
+      ifelse(plyr::is.formula(formula), " ", " argument "),
+      "should be a list of formulas.\nCan't nobody tell me nothin'")
+    stop(msg)
+  }
+  
+
+  if(length(startval) == 0){
+    warning("You provided no start values: length(startval)==0. If you have no free parameters, keep calm and carry on.")
+  }
+
 
   if(length(dots) > 0){
     if(!all(names(dots) %in% c('theta.formula', 'random.names',  'random.params.inicov', 'random.values.inicov'))){

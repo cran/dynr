@@ -156,6 +156,9 @@ coef.dynrModel <- function(object, ...){
 
 ##' @rdname coef.dynrCook
 `coef<-.dynrModel` <- function(object, value){
+	if(length(coef(object)) != length(value)){
+		stop(paste0("Number of model coeficients (", length(coef(object)), ") does not match number assigned (", length(value), ")."))
+	}
 	object <- PopBackModel(object, value)
 	return(object)
 }
@@ -703,3 +706,12 @@ impliedRegimes <- function(recipe){
 	return(nr)
 }
 
+checkSSMConformable <- function(mat, rows, cols, matname, modname){
+  if( nrow(mat) != rows || ncol(mat) != cols ){
+    msg <- paste("The ", matname, " matrix is not the correct size",
+                 " in the state space expectation of model ", modname,
+                 ".  It is ", nrow(mat), " by ", ncol(mat), " and should be ",
+                 rows, " by ", cols, ".", sep="")
+    stop(msg, call. = FALSE)
+  }
+}
