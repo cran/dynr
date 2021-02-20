@@ -6,7 +6,7 @@
 \usage{
 dynr.cook(dynrModel, conf.level = 0.95, infile, optimization_flag = TRUE,
   hessian_flag = TRUE, verbose = TRUE, weight_flag = FALSE,
-  debug_flag = FALSE)
+  debug_flag = FALSE, perturb_flag = FALSE)
 }
 \arguments{
 \item{dynrModel}{a dynr model compiled using dynr.model, consisting of recipes for submodels, 
@@ -30,6 +30,8 @@ be weighted by the length of the time series for each individual}
 
 \item{debug_flag}{a flag (TRUE/FALSE) indicating whether users want additional dynr output that can 
 be used for diagnostic purposes}
+
+\item{perturb_flag}{a flag (TRUE/FLASE) indicating whether to perturb the latent states during estimation. Only useful for ensemble forecasting.}
 }
 \description{
 Cook a dynr model to estimate its free parameters
@@ -51,7 +53,7 @@ When \code{debug_flag} is TRUE, then additional information is passed into the c
 time-varying predicted latent variable mean estimates, predicted error covariance matrix estimates, the error/residual estimates (innovation vector),
 and the error/residual covariance matrix estimates.
 
-The exit flag given after optimization has finished is from the SLSQP optimizer.  Generally, error codes have negative values and successful codes have positive values.  However, codes 5 and 6 do not indicate the model converged, but rather simply ran out of iterations or time, respectively.  A more full description of each code is available at \url{http://ab-initio.mit.edu/wiki/index.php/NLopt_Reference#Return_values} and is also listed in the table below.
+The exit flag given after optimization has finished is from the SLSQP optimizer.  Generally, error codes have negative values and successful codes have positive values.  However, codes 5 and 6 do not indicate the model converged, but rather simply ran out of iterations or time, respectively.  A more full description of each code is available at \url{https://nlopt.readthedocs.io/en/latest/NLopt_Reference/#return-values} and is also listed in the table below.
 
 \tabular{lcl}{
 NLOPT Term \tab Numeric Code \tab Description \cr

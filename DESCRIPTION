@@ -1,8 +1,8 @@
 Package: dynr
-Date: 2020-02-11
+Date: 2021-02-19
 Title: Dynamic Modeling in R
 Authors@R: c(person("Lu", "Ou", role="aut"),
-    person(c("Michael", "D."), "Hunter", role=c("aut", "cre"), email="mhunter.ou@gmail.com", comment=c(ORCID = "0000-0002-3651-6709")),
+    person(c("Michael", "D."), "Hunter", role=c("aut", "cre"), email="dynr.team@gmail.com", comment=c(ORCID = "0000-0002-3651-6709")),
     person("Sy-Miin", "Chow", role="aut", comment=c(ORCID = "0000-0003-1938-027X")),
 	person("Linying", "Ji", role="aut", email=""),
 	person("Meng", "Chen", role="aut", email=""),
@@ -10,7 +10,9 @@ Authors@R: c(person("Lu", "Ou", role="aut"),
 	person("Jungmin", "Lee", role="aut", email="leejapply@gmail.com"),
 	person("Yanling", "Li", role="aut", email=""),
 	person("Jonathan", "Park", role="aut", email=""))
-Maintainer: Michael D. Hunter <mhunter.ou@gmail.com>
+Maintainer: Michael D. Hunter <dynr.team@gmail.com>
+URL: https://dynrr.github.io/, https://github.com/mhunter1/dynr
+Contact: <dynr@googlegroups.com>
 Depends: R (>= 3.0.0), ggplot2
 Imports: MASS, Matrix, numDeriv, xtable, latex2exp, grid, reshape2,
         plyr, mice, magrittr, Rdpack, methods, fda, car, stringi,
@@ -40,12 +42,12 @@ LazyData: yes
 Collate: 'dynrData.R' 'dynrRecipe.R' 'dynrModelInternal.R'
         'dynrModel.R' 'dynrCook.R' 'dynrPlot.R' 'dynrFuncAddress.R'
         'dynrMi.R' 'dynrTaste.R' 'dynrVersion.R' 'dataDoc.R'
-        'dynrGetDerivs.R'
+        'dynrGetDerivs.R' 'dynrPredict.R'
 RdMacros: Rdpack
 Biarch: true
-Version: 0.1.15-25
+Version: 0.1.15-95
 RoxygenNote: 5.0.1
-Packaged: 2020-02-11 16:44:25 UTC; mhunter
+Packaged: 2021-02-20 01:36:19 UTC; mhunter
 Author: Lu Ou [aut],
   Michael D. Hunter [aut, cre] (<https://orcid.org/0000-0002-3651-6709>),
   Sy-Miin Chow [aut] (<https://orcid.org/0000-0003-1938-027X>),
@@ -56,4 +58,4 @@ Author: Lu Ou [aut],
   Yanling Li [aut],
   Jonathan Park [aut]
 Repository: CRAN
-Date/Publication: 2020-02-11 19:10:05 UTC
+Date/Publication: 2021-02-20 08:00:10 UTC

@@ -1,5 +1,4 @@
 ### R code from vignette source 'LinearDiscreteTimeModels.Rnw'
-### Encoding: ISO8859-1
 
 ###################################################
 ### code chunk number 1: LinearDiscreteTimeModels.Rnw:51-52 (eval = FALSE)

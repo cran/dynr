@@ -1,5 +1,4 @@
 ### R code from vignette source 'NonlinearContinuousTimeModels.Rnw'
-### Encoding: ISO8859-1
 
 ###################################################
 ### code chunk number 1: setup

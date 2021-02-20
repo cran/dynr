@@ -56,7 +56,7 @@ dynr.ggplot(res, dynrModel, style = 1, numSubjDemo = 2, idtoPlot = c(),
 The ggplot of the smoothed state estimates and the most likely regimes
 }
 \details{
-This function outputs a ggplot layer that can be modified using functions in the package \pkg{ggplot2}. That is, one can add layers, scales, coords and facets with the "+" sign. In an example below, the \code{ggplot2::ylim()} function is used to modify the limits of the y axis of the graph. More details can be found on \url{http://ggplot2.tidyverse.org} and \url{http://ggplot2.tidyverse.org/reference/}.
+This function outputs a ggplot layer that can be modified using functions in the package \pkg{ggplot2}. That is, one can add layers, scales, coords and facets with the "+" sign. In an example below, the \code{ggplot2::ylim()} function is used to modify the limits of the y axis of the graph. More details can be found on \url{https://ggplot2.tidyverse.org/} and \url{https://ggplot2.tidyverse.org/reference/}.
 
 The two functions \code{dynr.ggplot()} and \code{autoplot()} as identical aliases of one another.  The \code{autoplot()} function is an S3 method from the package \pkg{ggplot2} that allows many objects to be plotted and works like the base \code{plot()} function.
 }

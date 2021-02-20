@@ -1,5 +1,5 @@
 
-gitVersion <- "v0.1.15-25-gd0d5279"
+gitVersion <- "v0.1.15-95-g4b578cf"
 
 ##' Current Version String
 ##'

@@ -89,17 +89,12 @@ setClass(Class = "dynrDynamicsFormula",
            jacobian = "list",
            formulaOriginal = "list",
            jacobianOriginal = "list",
-
-
-		   random.names = "character",
-
-		   theta.formula = "list",
-
+           random.names = "character",
+           theta.formula = "list",
            isContinuousTime = "logical",
-
-		   saem = "logical",
-		   random.params.inicov="matrix",
-		   random.values.inicov="matrix"
+           saem = "logical",
+           random.params.inicov="matrix",
+           random.values.inicov="matrix"
            ),
          contains = "dynrDynamics"
 )
@@ -1426,7 +1421,7 @@ reverseldl <- function(values){
 			#  1 not all missing
 			#  2 not missing everywhere except the diagonal
 			#  3 not missing on the diagonal with zero everywhere else
-			warning("Avast ye swarthy dog! NA was passed to LDL in confusing way. Not doing LDL.")
+			warning("Avast ye lowly dog! NA was passed to LDL in confusing way. Not doing LDL.")
 			return(values)
 		}
 	} else{
@@ -1803,11 +1798,15 @@ prep.measurement <- function(values.load, params.load=NULL, values.exo=NULL, par
 	params.exo <- r$params
 	
 	# Handle int
+	if(missing(values.int) && !missing(params.int)){
+		warning('Intercept parameters are specified in params.int without any initial values. Using 0s as the default starting values. To change, please use values.int.')
+		values.int = matrix(rep(0, times = nrow(params.int)), ncol=1)
+	}
 	r <- coProcessValuesParams(values.int, params.int, missingOK=TRUE)
 	values.int <- r$values
 	params.int <- r$params
 	
-	
+
 	if(missing(obs.names)){
 		obs.names <- paste0('y',1:nrow(values.load[[1]]))
 	}
@@ -2213,20 +2212,20 @@ autojacob<-function(formula,n){
 ##' procedure to compute the jacobian functions.
 ##' @param ... further named arguments. Some of these arguments may include:
 ##' 
-##' theta.formula = a list consisting of formula(s) of the form 
-##'  list (par ~ 1 * b_0  + covariate_1 * b_1 + ... + covariate_p * b_p 
-##'  + 1 * rand_par), where par is a parameter is a unit- (e.g., person-) 
+##' \code{theta.formula} specifies a list consisting of formula(s) of the form 
+##' \code{list (par ~ 1 * b_0  + covariate_1 * b_1 + ... + covariate_p * b_p 
+##'  + 1 * rand_par)}, where \code{par} is a parameter is a unit- (e.g., person-) 
 ##'  specific that appears in a dynamic formula and is assumed to follow
-##'  a linear mixed effects structure. Here, b_p are fixed effects 
-##'  parameters; covariate_1, ..., covariate_p are known covariates as ??pdeclared in
-##'  dynr.data, and b_p is a random effect component representing unit i's random deviation
-##'  in par value from that predicted by b_0 + covariate_1*b_1 + ... + covariate_p*b_p 
+##'  a linear mixed effects structure. Here, \code{b_p} are fixed effects 
+##'  parameters; \code{covariate_1}, ..., \code{covariate_p} are known covariates as predeclared in
+##'  \code{dynr.data}, and \code{rand_par} is a random effect component representing unit i's random deviation
+##'  in \code{par} value from that predicted by \code{b_0 + covariate_1*b_1 + ... + covariate_p*b_p}. 
 ##'
-##' random.names = names of random effect components in the theta.formula
+##' \code{random.names} specifies names of random effect components in the \code{theta.formula}
 ##'
-##' random.params.inicov = names of elements in the covariance matrix of the random effect components
+##' \code{random.params.inicov} specifies names of elements in the covariance matrix of the random effect components
 ##'
-##' random.values.inicov = starting values of elements in the covariance matrix of the random effect components
+##' \code{random.values.inicov} specifies starting values of elements in the covariance matrix of the random effect components
 ##' 
 ##' @details
 ##' This function defines the dynamic functions of the model either in discrete time or in continuous time.
@@ -2234,13 +2233,13 @@ autojacob<-function(formula,n){
 ##' covariates, and other mathematical functions that define the dynamics of the latent variables.
 ##' Every latent variable in the model needs to be defined by a differential (for continuous time model), or
 ##' difference (for discrete time model) equation.  The names of the latent variables should match 
-##' the specification in prep.measurement().
+##' the specification in \code{prep.measurement()}.
 ##' For nonlinear models, the estimation algorithm generally needs a Jacobian matrix that contains
 ##' elements of first differentiations of the dynamic functions with respect to the latent variables
 ##' in the model. For most nonlinear models, such differentiations can be handled automatically by
-##' dynr. However, in some cases, such as when the absolute function (abs) is used, the automatic
+##' dynr. However, in some cases, such as when the absolute function (\code{abs}) is used, the automatic
 ##' differentiation would fail and the user may need to provide his/her own Jacobian functions.
-##' When theta.formula and other accompanying elements in "..." are provided, the program
+##' When \code{theta.formula} and other accompanying elements in "\code{...}" are provided, the program
 ##' automatically inserts the random effect components specified in random.names as additional
 ##' latent (state) variables in the model, and estimate (cook) this expanded model. Do check
 ##' that the expanded model satisfies conditions such as observability for the estimation to work.
@@ -2301,84 +2300,113 @@ autojacob<-function(formula,n){
 ##' dynm <- prep.formulaDynamics(formula=formula,
 ##'                           startval=c(a = 2.1, c = 0.8, b = 1.9, d = 1.1),
 ##'                           isContinuousTime=TRUE)
+##'
+##' #For a full demo example that includes unit-specific random effects in theta.formula see:
+##' #demo(OscWithRand, package="dynr")
+##' formula = list(x ~ dx,
+##'                dx ~ eta_i * x + zeta*dx)
+##' theta.formula  = list (eta_i ~ 1 * eta0  + u1 * eta1 + u2 * eta2 + 1 * b_eta)
+##' dynm<-prep.formulaDynamics(formula=formula,
+##'                            startval=c(eta0=-1, eta1=.1, eta2=-.1,zeta=-.02),
+##'                            isContinuousTime=TRUE,
+##'                            theta.formula=theta.formula,
+##'                            random.names=c('b_eta'),
+##'                            random.params.inicov=matrix(c('sigma2_b_eta'), ncol=1,byrow=TRUE),
+##'                            random.values.inicov=matrix(c(0.1), ncol=1,byrow=TRUE))
 prep.formulaDynamics <- function(formula, startval = numeric(0), isContinuousTime=FALSE, jacobian, ...){
-  dots <- list(...)
-
-  # if the argument formula is not a list 
-  if(!is.list(formula)){
-    msg <- paste0(ifelse(plyr::is.formula(formula), "'formula' argument is a formula but ", ""),
-      "'formula'",
-      ifelse(plyr::is.formula(formula), " ", " argument "),
-      "should be a list of formulas.\nCan't nobody tell me nothin'")
-    stop(msg)
-  }
-  
-
-  if(length(startval) == 0){
-    warning("You provided no start values: length(startval)==0. If you have no free parameters, keep calm and carry on.")
-  }
-
-
-  if(length(dots) > 0){
-    if(!all(names(dots) %in% c('theta.formula', 'random.names',  'random.params.inicov', 'random.values.inicov'))){
-      stop("You passed some invalid names to the ... argument. Check with US Customs or the ?prep.formulaDynamics help page.")
-    }
+	dots <- list(...)
 	
-	if('theta.formula' %in% names(dots))
-      theta.formula <- dots$theta.formula
-	if('random.names' %in% names(dots))  
-      random.names <- dots$random.names
-    if('random.params.inicov' %in% names(dots))
-      random.params.inicov <- dots$random.params.inicov
-	if('random.values.inicov' %in% names(dots))
-	  random.values.inicov <- dots$random.values.inicov
-
-
-  }
-  
-  state.names = unlist(lapply(formula, function(fml){as.character(as.list(fml)[[2]])}))
-  if(length(startval) > 0){
-    beta.names = names(startval)
-  }
- 	
-  if(length(startval) > 0 & is.null(names(startval))){
-    stop('startval must be a named vector')
-  }
-  # e.g. for the one-regime case, if we get a list of formula, make a list of lists of formula
-  if(is.list(formula) && plyr::is.formula(formula[[1]])){
-    formula <- list(formula)
-  }
-  x <- list(formula=formula, startval=startval, paramnames=c(preProcessParams(names(startval))), isContinuousTime=isContinuousTime)
-  if (missing(jacobian)){
-    autojcb=try(lapply(formula,autojacob,length(formula[[1]])))
-    if (class(autojcb) == "try-error") {
-      stop("Automatic differentiation is not supported by part of the dynamic functions.\n 
-           Please provide the analytic jacobian functions.")
-    }else{
-      jacobian=lapply(autojcb,"[[","jacob")
-    }
-  }
+	# if the argument formula is not a list 
+	if(!is.list(formula)){
+		msg <- paste0(ifelse(plyr::is.formula(formula), "'formula' argument is a formula but ", ""),
+			"'formula'",
+			ifelse(plyr::is.formula(formula), " ", " argument "),
+			"should be a list of formulas.\nCan't nobody tell me nothin'")
+		stop(msg)
+	}
+	
+	
+	if(length(startval) == 0){
+		warning("You provided no start values: length(startval)==0. If you have no free parameters, keep calm and carry on.")
+	}
+	
+	
+	if(length(dots) > 0){
+		if(!all(names(dots) %in% c('theta.formula', 'random.names',	'random.params.inicov', 'random.values.inicov'))){
+			stop("You passed some invalid names to the ... argument. Check with US Customs or the ?prep.formulaDynamics help page.")
+		}
+		
+		if('theta.formula' %in% names(dots))
+			theta.formula <- dots$theta.formula
+		if('random.names' %in% names(dots))
+			random.names <- dots$random.names
+		if('random.params.inicov' %in% names(dots))
+			random.params.inicov <- dots$random.params.inicov
+		if('random.values.inicov' %in% names(dots))
+			random.values.inicov <- dots$random.values.inicov
+	}
+	
+	if(length(startval) > 0 & is.null(names(startval))){
+		stop('startval must be a named vector')
+	}
+	if(length(startval) > 0){
+		beta.names = names(startval)
+	}
+	
+	# e.g. for the one-regime case, if we get a list of formula, make a list of lists of formula
+	if(is.list(formula) && plyr::is.formula(formula[[1]])){
+		formula <- list(formula)
+	}
+	state.names <- lapply(formula, function(fml){sapply(fml, function(x){as.character(x[[2]])})})
+	state.regimes <- paste(paste0('Regime ', 1:length(state.names), ': ', lapply(state.names, paste, collapse=', ')), collapse='\n')
+	if(any(sapply(lapply(state.names, duplicated), any))){
+		stop(paste0("Found duplicated latent state names:\n", state.regimes))
+	}
+	if(length(unique(sapply(state.names, length))) != 1){
+		stop(paste0("Found different number of latent states for different regimes:\n", state.regimes))
+	}
+	if(!all(sapply(state.names, function(x, y){all(x==y)}, y=state.names[[1]]))){
+		stop(paste0("Found different latent states or different ordering of latent states across regimes:\n", state.regimes))
+	}
+	x <- list(formula=formula, startval=startval, paramnames=c(preProcessParams(names(startval))), isContinuousTime=isContinuousTime)
+	if (missing(jacobian)){
+		autojcb=try(lapply(formula,autojacob,length(formula[[1]])))
+		if (class(autojcb) == "try-error") {
+			stop("Automatic differentiation is not supported by part of the dynamic functions.\n 
+					 Please provide the analytic jacobian functions.")
+		}else{
+			jacobian=lapply(autojcb,"[[","jacob")
+		}
+	}
 	
 	# Check that all 'values' imply 0, 1, or the same number of regimes.
 	# Note that the 'values' and 'params' have already been checked to imply this.
 	nregs <- sapply(list(formula=formula, jacobian=jacobian), length)
 	if(nregs[1] != nregs[2]){
-		stop(paste0("Don't bring that trash up in my house!\nDifferent numbers of regimes implied:\n'formula' has ", nregs[1], " but 'jacobian' has ",  nregs[2], " regimes."))
+		stop(paste0("Don't bring that trash up in my house!\nDifferent numbers of regimes implied:\n'formula' has ", nregs[1], " but 'jacobian' has ", nregs[2], " regimes."))
 	}
-  x$jacobian <- jacobian
-  x$formulaOriginal <- x$formula
-  x$jacobianOriginal <- jacobian
-  x$paramnames <-names(x$startval)
-
-  if('theta.formula' %in% names(dots))
-    x$theta.formula <- theta.formula
-  if('random.names' %in% names(dots))
-    x$random.names <- random.names
-  if('random.params.inicov' %in% names(dots))
-    x$random.params.inicov <- random.params.inicov
-  if('random.values.inicov' %in% names(dots))
-    x$random.values.inicov <- random.values.inicov
-  return(new("dynrDynamicsFormula", x))
+	x$jacobian <- jacobian
+	x$formulaOriginal <- x$formula
+	x$jacobianOriginal <- jacobian
+	x$paramnames <- names(x$startval)
+	
+	# Check for latent states with same name as free parameter
+	if(any(sapply(lapply(state.names, "%in%", x$paramnames), any))){
+		stop(paste0("See no evil, but latent states had the same names as free parameters.",
+			"\nParameters that are both latent states and free parameters: ",
+			paste(unique(c(sapply(state.names, function(nam){x$paramnames[x$paramnames %in% nam]}))), collapse=', ')))
+	}
+	
+	
+	if('theta.formula' %in% names(dots))
+		x$theta.formula <- theta.formula
+	if('random.names' %in% names(dots))
+		x$random.names <- random.names
+	if('random.params.inicov' %in% names(dots))
+		x$random.params.inicov <- random.params.inicov
+	if('random.values.inicov' %in% names(dots))
+		x$random.values.inicov <- random.values.inicov
+	return(new("dynrDynamicsFormula", x))
 }
 
 ##' Recipe function for creating Linear Dynamcis using matrices

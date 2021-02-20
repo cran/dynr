@@ -4,7 +4,7 @@
 \name{vdpData}
 \alias{vdpData}
 \title{Another simulated multilevel multi-subject time series of a Van der Pol Oscillator}
-\format{A data frame with 60,000 rows and 11 variables}
+\format{A data frame with 10,000 rows and 11 variables}
 \usage{
 data(vdpData)
 }
