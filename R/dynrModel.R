@@ -135,8 +135,40 @@ setReplaceMethod("$", "dynrModel",
 ##' A single number. The total number of observations across all IDs.
 ##' 
 ##' @examples
-##' # Let rawModel be the output from dynr.model
-##' #nobs(rawModel)
+##' # Create a minimal cooked model called 'model'
+##' require(dynr)
+##' 
+##' meas <- prep.measurement(
+##' 	values.load=matrix(c(1, 0), 1, 2),
+##' 	params.load=matrix(c('fixed', 'fixed'), 1, 2),
+##' 	state.names=c("Position","Velocity"),
+##' 	obs.names=c("y1"))
+##' 
+##' ecov <- prep.noise(
+##' 	values.latent=diag(c(0, 1), 2),
+##' 	params.latent=diag(c('fixed', 'dnoise'), 2),
+##' 	values.observed=diag(1.5, 1),
+##' 	params.observed=diag('mnoise', 1))
+##' 
+##' initial <- prep.initial(
+##' 	values.inistate=c(0, 1),
+##' 	params.inistate=c('inipos', 'fixed'),
+##' 	values.inicov=diag(1, 2),
+##' 	params.inicov=diag('fixed', 2))
+##' 
+##' dynamics <- prep.matrixDynamics(
+##' 	values.dyn=matrix(c(0, -0.1, 1, -0.2), 2, 2),
+##' 	params.dyn=matrix(c('fixed', 'spring', 'fixed', 'friction'), 2, 2),
+##' 	isContinuousTime=TRUE)
+##' 
+##' data(Oscillator)
+##' data <- dynr.data(Oscillator, id="id", time="times", observed="y1")
+##' 
+##' model <- dynr.model(dynamics=dynamics, measurement=meas,
+##' 	noise=ecov, initial=initial, data=data)
+##' 
+##' # Now get the total number of observations!
+##' nobs(model)
 nobs.dynrModel <- function(object, ...){
 	dim(object$data$observed)[1]
 }
@@ -532,17 +564,41 @@ setMethod("printex", "dynrModel",
 ##' 	\item \code{coef} gives the free parameter starting values.  Free parameters can also be assigned with \code{coef(model) <- aNamedVectorOfCoefficients}
 ##' }
 ##' 
-##' @examples
-##' #rsmod <- dynr.model(dynamics=recDyn, measurement=recMeas, noise=recNoise, 
-##' #    initial=recIni, regimes=recReg, data=dd, outfile="RSLinearDiscrete.c")
-##'
-##' #Set relative tolerance on function value via 'options':
-##' #rsmod <- dynr.model(dynamics=recDyn, measurement=recMeas, noise=recNoise, 
-##' #    initial=recIni, regimes=recReg, data=dd, outfile="RSLinearDiscrete.c",
-##' #    options=list(ftol_rel=as.numeric(1e-6)))
+##' @return Object of class 'dynrModel'
 ##' 
-##' #For a full demo example, see:
-##' #demo(RSLinearDiscrete , package="dynr")
+##' @examples
+##' # Create a minimal cooked model called 'model'
+##' require(dynr)
+##' 
+##' meas <- prep.measurement(
+##' 	values.load=matrix(c(1, 0), 1, 2),
+##' 	params.load=matrix(c('fixed', 'fixed'), 1, 2),
+##' 	state.names=c("Position","Velocity"),
+##' 	obs.names=c("y1"))
+##' 
+##' ecov <- prep.noise(
+##' 	values.latent=diag(c(0, 1), 2),
+##' 	params.latent=diag(c('fixed', 'dnoise'), 2),
+##' 	values.observed=diag(1.5, 1),
+##' 	params.observed=diag('mnoise', 1))
+##' 
+##' initial <- prep.initial(
+##' 	values.inistate=c(0, 1),
+##' 	params.inistate=c('inipos', 'fixed'),
+##' 	values.inicov=diag(1, 2),
+##' 	params.inicov=diag('fixed', 2))
+##' 
+##' dynamics <- prep.matrixDynamics(
+##' 	values.dyn=matrix(c(0, -0.1, 1, -0.2), 2, 2),
+##' 	params.dyn=matrix(c('fixed', 'spring', 'fixed', 'friction'), 2, 2),
+##' 	isContinuousTime=TRUE)
+##' 
+##' data(Oscillator)
+##' data <- dynr.data(Oscillator, id="id", time="times", observed="y1")
+##' 
+##' # Now here's the model!
+##' model <- dynr.model(dynamics=dynamics, measurement=meas,
+##' 	noise=ecov, initial=initial, data=data)
 dynr.model <- function(dynamics, measurement, noise, initial, data, ..., outfile = tempfile()){
   
   if(!class(dynamics) %in% c("dynrDynamicsFormula","dynrDynamicsMatrix")){
@@ -791,6 +847,12 @@ dynr.model <- function(dynamics, measurement, noise, initial, data, ..., outfile
   }
   cat(glom, file=obj.dynrModel@outfile)
   
+  if (.hasSlot(obj.dynrModel$dynamics, 'theta.formula') && length(obj.dynrModel$dynamics@theta.formula) > 0){
+    #get the extended model and return it (don't keep the original model)
+    extended_model <- EstimateRandomAsLVModel(obj.dynrModel)
+	return(extended_model)
+  }
+
   return(obj.dynrModel)
   #modify the object slot, including starting values, etc.
 }

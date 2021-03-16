@@ -1,16 +1,20 @@
 Package: dynr
-Date: 2021-02-19
-Title: Dynamic Modeling in R
+Date: 2021-03-12
+Title: Dynamic Models with Regime-Switching
 Authors@R: c(person("Lu", "Ou", role="aut"),
-    person(c("Michael", "D."), "Hunter", role=c("aut", "cre"), email="dynr.team@gmail.com", comment=c(ORCID = "0000-0002-3651-6709")),
+    person(c("Michael", "D."), "Hunter", role=c("aut", "cre"), email="mike.dynr@gmail.com", comment=c(ORCID = "0000-0002-3651-6709")),
     person("Sy-Miin", "Chow", role="aut", comment=c(ORCID = "0000-0003-1938-027X")),
 	person("Linying", "Ji", role="aut", email=""),
 	person("Meng", "Chen", role="aut", email=""),
 	person("Hui-Ju", "Hung", role="aut", email=""),
 	person("Jungmin", "Lee", role="aut", email="leejapply@gmail.com"),
 	person("Yanling", "Li", role="aut", email=""),
-	person("Jonathan", "Park", role="aut", email=""))
-Maintainer: Michael D. Hunter <dynr.team@gmail.com>
+	person("Jonathan", "Park", role="aut", email=""),
+	person("Massachusetts Institute of Technology", role="cph"),
+	person("S. G.", "Johnson", role="cph"),
+	person("Benoit", "Scherrer", role="cph"),
+	person("Dieter", "Kraft", role="cph"))
+Maintainer: Michael D. Hunter <mike.dynr@gmail.com>
 URL: https://dynrr.github.io/, https://github.com/mhunter1/dynr
 Contact: <dynr@googlegroups.com>
 Depends: R (>= 3.0.0), ggplot2
@@ -33,7 +37,9 @@ Description: Intensive longitudinal data have become increasingly prevalent in
     estimation and computations are performed in C, but users are provided with the
     option to specify the model of interest via a set of simple and easy-to-learn
     model specification functions in R. Model fitting can be performed using single-
-    subject time series data or multiple-subject longitudinal data.
+    subject time series data or multiple-subject longitudinal data. Ou, Hunter, &
+    Chow (2019) <doi:10.32614/RJ-2019-012> provided a detailed introduction to the
+    interface and more information on the algorithms.
 SystemRequirements: GNU make
 NeedsCompilation: yes
 License: GPL-3
@@ -45,9 +51,9 @@ Collate: 'dynrData.R' 'dynrRecipe.R' 'dynrModelInternal.R'
         'dynrGetDerivs.R' 'dynrPredict.R'
 RdMacros: Rdpack
 Biarch: true
-Version: 0.1.15-95
+Version: 0.1.16-2
 RoxygenNote: 5.0.1
-Packaged: 2021-02-20 01:36:19 UTC; mhunter
+Packaged: 2021-03-12 14:51:36 UTC; mhunter
 Author: Lu Ou [aut],
   Michael D. Hunter [aut, cre] (<https://orcid.org/0000-0002-3651-6709>),
   Sy-Miin Chow [aut] (<https://orcid.org/0000-0003-1938-027X>),
@@ -56,6 +62,10 @@ Author: Lu Ou [aut],
   Hui-Ju Hung [aut],
   Jungmin Lee [aut],
   Yanling Li [aut],
-  Jonathan Park [aut]
+  Jonathan Park [aut],
+  Massachusetts Institute of Technology [cph],
+  S. G. Johnson [cph],
+  Benoit Scherrer [cph],
+  Dieter Kraft [cph]
 Repository: CRAN
-Date/Publication: 2021-02-20 08:00:10 UTC
+Date/Publication: 2021-03-16 12:40:13 UTC

@@ -11,6 +11,9 @@
 
 \item{...}{further named arguments, ignored by this method}
 }
+\value{
+matrix.  Asymptotic variance-covariance matrix of the transformed parameters.
+}
 \description{
 Extract the Variance-Covariance Matrix of a dynrCook object
 }

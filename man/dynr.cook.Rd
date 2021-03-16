@@ -33,6 +33,9 @@ be used for diagnostic purposes}
 
 \item{perturb_flag}{a flag (TRUE/FLASE) indicating whether to perturb the latent states during estimation. Only useful for ensemble forecasting.}
 }
+\value{
+Object of class dynrCook.
+}
 \description{
 Cook a dynr model to estimate its free parameters
 }
@@ -73,7 +76,41 @@ NONFINITE_FIT \tab -6 \tab Fit function is not finite (i.e., is NA, NaN, Inf or 
 The last row of this table corresponding to an exit code of -6, is not from NLOPT, but rather is specific to the \code{dynr} package.
 }
 \examples{
-#fitted.model <- dynr.cook(model)
+# Minimal model
+require(dynr)
+
+meas <- prep.measurement(
+	values.load=matrix(c(1, 0), 1, 2),
+	params.load=matrix(c('fixed', 'fixed'), 1, 2),
+	state.names=c("Position","Velocity"),
+	obs.names=c("y1"))
+
+ecov <- prep.noise(
+	values.latent=diag(c(0, 1), 2),
+	params.latent=diag(c('fixed', 'dnoise'), 2),
+	values.observed=diag(1.5, 1),
+	params.observed=diag('mnoise', 1))
+
+initial <- prep.initial(
+	values.inistate=c(0, 1),
+	params.inistate=c('inipos', 'fixed'),
+	values.inicov=diag(1, 2),
+	params.inicov=diag('fixed', 2))
+
+dynamics <- prep.matrixDynamics(
+	values.dyn=matrix(c(0, -0.1, 1, -0.2), 2, 2),
+	params.dyn=matrix(c('fixed', 'spring', 'fixed', 'friction'), 2, 2),
+	isContinuousTime=TRUE)
+
+data(Oscillator)
+data <- dynr.data(Oscillator, id="id", time="times", observed="y1")
+
+model <- dynr.model(dynamics=dynamics, measurement=meas,
+	noise=ecov, initial=initial, data=data)
+
+# Now cook the model!
+cook <- dynr.cook(model,
+	verbose=FALSE, optimization_flag=FALSE, hessian_flag=FALSE)
 }
 \seealso{
 \code{\link{autoplot}}, \code{\link{coef}}, \code{\link{confint}},

@@ -32,6 +32,9 @@ Optional for a ``ts'' class object.}
 \item{covariates}{(optional) a vector of character strings of the names of the covariates in the data,
 which can be missing.}
 }
+\value{
+A list with components as needed for \code{dynr.model}
+}
 \description{
 Create a list of data for parameter estimation (cooking dynr) using \code{\link{dynr.cook}}
 }

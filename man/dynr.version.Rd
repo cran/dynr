@@ -11,6 +11,9 @@ dynr.version(verbose = TRUE)
 
 This function returns a string with the current version number of dynr. Optionally (with verbose = TRUE (the default)), it prints a message containing the version of R and the platform.  The primary purpose of the function is for bug reporting.}
 }
+\value{
+A (length-one) object of class 'package_version'
+}
 \description{
 Current Version String
 }

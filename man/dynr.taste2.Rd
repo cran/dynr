@@ -70,6 +70,14 @@ if user-specified outliers are offered by the arguments
 \code{delta_L} and \code{delta_O}.
 }
 \examples{
-# dynrTaste2 <- dynr.taste2(dynrModel, dynrCook, dynrTaste)
+\dontrun{
+# See the demo for outlier detection, OutlierDetection.R
+dynrCook <- dynr.cook(dynrModel)
+dynrTaste <- dynr.taste(dynrModel, dynrCook)
+
+# Detect outliers related to 'eta1' out of, say, three latent
+# variables c("eta1", "eta2", "eta3"), and all measured variables.
+taste2 <- dynr.taste2(dynrModel, dynrCook, dynrTaste)
+}
 }
 

@@ -27,6 +27,9 @@ specified linear dynamic model}
 
 \item{isContinuousTime}{logical. When TRUE, use a continuous time model.  When FALSE use a discrete time model.}
 }
+\value{
+Object of class 'dynrDynamicsMatrix'
+}
 \description{
 Recipe function for creating Linear Dynamcis using matrices
 }
@@ -54,18 +57,18 @@ vectors/matrices are assumed to hold across regimes.
 #Single-regime, continuous-time model. For further details run: 
 #demo(RSNonlinearDiscrete, package="dynr"))
 dynamics <- prep.matrixDynamics(
-values.dyn=matrix(c(0, -0.1, 1, -0.2), 2, 2),
-params.dyn=matrix(c('fixed', 'spring', 'fixed', 'friction'), 2, 2),
-isContinuousTime=TRUE)
+    values.dyn=matrix(c(0, -0.1, 1, -0.2), 2, 2),
+    params.dyn=matrix(c('fixed', 'spring', 'fixed', 'friction'), 2, 2),
+    isContinuousTime=TRUE)
 
 #Two-regime, continuous-time model. For further details run: 
 #demo(RSNonlinearDiscrete, package="dynr"))
 dynamics <- prep.matrixDynamics(
-values.dyn=list(matrix(c(0, -0.1, 1, -0.2), 2, 2),
-                matrix(c(0, -0.1, 1, 0), 2, 2)),
-params.dyn=list(matrix(c('fixed', 'spring', 'fixed', 'friction'), 2, 2),
-           matrix(c('fixed', 'spring', 'fixed', 'fixed'), 2, 2)),
-isContinuousTime=TRUE) 
+    values.dyn=list(matrix(c(0, -0.1, 1, -0.2), 2, 2),
+                    matrix(c(0, -0.1, 1, 0), 2, 2)),
+    params.dyn=list(matrix(c('fixed', 'spring', 'fixed', 'friction'), 2, 2),
+                    matrix(c('fixed', 'spring', 'fixed', 'fixed'), 2, 2)),
+    isContinuousTime=TRUE) 
 }
 \seealso{
 Methods that can be used include: \code{\link{print}}, \code{\link{show}}

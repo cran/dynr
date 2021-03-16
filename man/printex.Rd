@@ -36,6 +36,9 @@ saved for use of subscripts.  Greek letters can be specified as corresponding La
 \item{...}{Further named arguments, passed to internal method. 
 \code{AsMatrix} is a logical indicator of whether to put the object in matrix form.}
 }
+\value{
+character text suitable for use fiel LaTeX
+}
 \description{
 The printex Method
 }

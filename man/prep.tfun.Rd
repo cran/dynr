@@ -28,6 +28,9 @@ of the optimization process for standard error calculations but not
 during the optimization process.
 ##'}
 }
+\value{
+Object of class 'dynrTrans'
+}
 \description{
 Create a dynrTrans object to handle the transformations and inverse 
 transformations of model paramters

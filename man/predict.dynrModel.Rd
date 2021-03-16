@@ -23,6 +23,9 @@
 
 \item{...}{further named arguments, e.g., \code{size} for the ensemble size when using the ensemble prediction}
 }
+\value{
+A list of the prediction estimates, intervals, and ensemble members.
+}
 \description{
 \code{predict} method for \code{dynrModel} objects
 }

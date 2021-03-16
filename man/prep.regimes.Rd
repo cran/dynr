@@ -18,6 +18,9 @@ and (number of regimes x number of covariates) columns}
 
 \item{refRow}{numeric. Which row is treated at the reference.  See Details.}
 }
+\value{
+Object of class 'dynrRegimes'
+}
 \description{
 Recipe function for creating regime switching (Markov transition) functions
 }

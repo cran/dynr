@@ -11,6 +11,9 @@
 
 \item{...}{Further named arguments, passed to the print method (e.g., \code{digits} and \code{signif.stars}).}
 }
+\value{
+Object of class summary.dynrCook.  Primarily used for showing the results of a fitted model.
+}
 \description{
 Get the summary of a dynrCook object
 }

@@ -18,6 +18,9 @@ prep.loadings(map, params = NULL, idvar, exo.names = character(0),
 
 \item{intercept}{logical. Whether to include freely esimated intercepts}
 }
+\value{
+Object of class 'dynrMeasurement'
+}
 \description{
 Recipe function to quickly create factor loadings
 }

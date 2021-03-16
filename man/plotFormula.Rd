@@ -22,6 +22,9 @@ and printed as greek letters.}
 
 \item{textsize}{The text size use in the plot.}
 }
+\value{
+ggplot object
+}
 \description{
 Plot the formula from a model
 }

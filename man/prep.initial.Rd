@@ -30,6 +30,9 @@ with the starting value specified in the values vector/matrix.}
 
 \item{refRow}{numeric. Which row is treated at the reference.  See Details.}
 }
+\value{
+Object of class 'dynrInitial'
+}
 \description{
 Recipe function for preparing the initial conditions for the model.
 }

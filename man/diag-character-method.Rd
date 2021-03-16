@@ -16,11 +16,14 @@
 
 \item{ncol}{Numeric. Number of columns for the resulting matrix.}
 }
+\value{
+A matrix
+}
 \description{
 Create a diagonal matrix from a character vector
 }
 \details{
-The default behavior for missing \code{nrow} and/or \code{ncol} arguments is the same
+We create a new method for \code{diag} with character input.  The default behavior for missing \code{nrow} and/or \code{ncol} arguments is the same
 as for the \code{\link{diag}} function in the base package.  Off-diagonal entries
 are filled with "0".
 }

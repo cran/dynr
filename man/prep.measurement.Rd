@@ -28,6 +28,9 @@ For models with regime-specific factor loadings provide a list of matrices of fa
 
 \item{exo.names}{(optional) vector of names for the exogenous variables in the order they appear in the measurement model.}
 }
+\value{
+Object of class 'dynrMeasurement'
+}
 \description{
 Prepare the measurement recipe
 }

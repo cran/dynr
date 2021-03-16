@@ -42,6 +42,9 @@ procedure to compute the jacobian functions.}
 
 \code{random.values.inicov} specifies starting values of elements in the covariance matrix of the random effect components}
 }
+\value{
+Object of class 'dynrDynamicsFormula'
+}
 \description{
 Recipe function for specifying dynamic functions using formulas
 }
@@ -71,7 +74,7 @@ that the expanded model satisfies conditions such as observability for the estim
 # latent variables, which are "readLevel", "readSlope", "mathLevel", and "math Slope".  The right-
 # hand side of each formula gives a function that defines the dynamics.   
  
- formula =list(
+ formula <- list(
           list(readLevel~ (1+beta.read)*readLevel + readSlope + gamma.read*mathLevel,
           readSlope~ readSlope,
           mathLevel~ (1+beta.math)*mathLevel + mathSlope + gamma.math*readLevel, 
@@ -121,10 +124,10 @@ dynm <- prep.formulaDynamics(formula=formula,
 
 #For a full demo example that includes unit-specific random effects in theta.formula see:
 #demo(OscWithRand, package="dynr")
-formula = list(x ~ dx,
+formula <- list(x ~ dx,
                dx ~ eta_i * x + zeta*dx)
 theta.formula  = list (eta_i ~ 1 * eta0  + u1 * eta1 + u2 * eta2 + 1 * b_eta)
-dynm<-prep.formulaDynamics(formula=formula,
+dynm <- prep.formulaDynamics(formula=formula,
                            startval=c(eta0=-1, eta1=.1, eta2=-.1,zeta=-.02),
                            isContinuousTime=TRUE,
                            theta.formula=theta.formula,

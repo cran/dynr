@@ -25,6 +25,9 @@ dynr.plotFreq(res, dynrModel, names.regime, title, xlab, ylab, textsize = 12,
 
 \item{print}{(default = TRUE) A flag for whether the plot should be printed.}
 }
+\value{
+ggplot object
+}
 \description{
 Plot of the estimated frequencies of the regimes across all individuals and time points
 based on their smoothed regime probabilities

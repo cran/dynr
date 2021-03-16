@@ -1,11 +1,13 @@
 
-gitVersion <- "v0.1.15-95-g4b578cf"
+gitVersion <- "v0.1.16-2-gfddfbab"
 
 ##' Current Version String
 ##'
 ##' @param verbose If TRUE, print detailed information to the console (default)
 ##' 
 ##' This function returns a string with the current version number of dynr. Optionally (with verbose = TRUE (the default)), it prints a message containing the version of R and the platform.  The primary purpose of the function is for bug reporting.
+##' 
+##' @return A (length-one) object of class 'package_version'
 ##' 
 ##' @examples
 ##' dynr.version()

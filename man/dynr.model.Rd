@@ -27,6 +27,9 @@ a dynrTrans object prepared with \code{\link{prep.tfun}}.}
 \item{outfile}{a character string of the name of the output C script of model functions to be compiled 
 for parameter estimation. The default is the name for a potential temporary file returned by tempfile().}
 }
+\value{
+Object of class 'dynrModel'
+}
 \description{
 Create a dynrModel object for parameter estimation (cooking dynr) using \code{\link{dynr.cook}}
 }
@@ -53,15 +56,37 @@ There are several available methods for \code{dynrModel} objects.
 }
 }
 \examples{
-#rsmod <- dynr.model(dynamics=recDyn, measurement=recMeas, noise=recNoise, 
-#    initial=recIni, regimes=recReg, data=dd, outfile="RSLinearDiscrete.c")
+# Create a minimal cooked model called 'model'
+require(dynr)
 
-#Set relative tolerance on function value via 'options':
-#rsmod <- dynr.model(dynamics=recDyn, measurement=recMeas, noise=recNoise, 
-#    initial=recIni, regimes=recReg, data=dd, outfile="RSLinearDiscrete.c",
-#    options=list(ftol_rel=as.numeric(1e-6)))
+meas <- prep.measurement(
+	values.load=matrix(c(1, 0), 1, 2),
+	params.load=matrix(c('fixed', 'fixed'), 1, 2),
+	state.names=c("Position","Velocity"),
+	obs.names=c("y1"))
 
-#For a full demo example, see:
-#demo(RSLinearDiscrete , package="dynr")
+ecov <- prep.noise(
+	values.latent=diag(c(0, 1), 2),
+	params.latent=diag(c('fixed', 'dnoise'), 2),
+	values.observed=diag(1.5, 1),
+	params.observed=diag('mnoise', 1))
+
+initial <- prep.initial(
+	values.inistate=c(0, 1),
+	params.inistate=c('inipos', 'fixed'),
+	values.inicov=diag(1, 2),
+	params.inicov=diag('fixed', 2))
+
+dynamics <- prep.matrixDynamics(
+	values.dyn=matrix(c(0, -0.1, 1, -0.2), 2, 2),
+	params.dyn=matrix(c('fixed', 'spring', 'fixed', 'friction'), 2, 2),
+	isContinuousTime=TRUE)
+
+data(Oscillator)
+data <- dynr.data(Oscillator, id="id", time="times", observed="y1")
+
+# Now here's the model!
+model <- dynr.model(dynamics=dynamics, measurement=meas,
+	noise=ecov, initial=initial, data=data)
 }
 

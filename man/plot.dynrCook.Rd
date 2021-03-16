@@ -26,6 +26,9 @@
 
 \item{...}{Further named arguments}
 }
+\value{
+ggplot object.
+}
 \description{
 Plot method for dynrCook objects
 }
