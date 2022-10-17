@@ -75,28 +75,6 @@ exporting some selected functions from phaseR_2.0 published on 8/20/2018.
 For details of these functions please see original documentations on the
 phaseR package.
 }
-\examples{
-#Osc <- function(t, y, parameters) {
-#  dy <- numeric(2)
-#  dy[1] <- y[2]
-#  dy[2] <- parameters[1]*y[1]+parameters[2]*dy[1]   
-#  return(list(dy))
-#}
-#
-#param <- coef(g)
-#dynr.flowField(Osc, xlim = c(-3, 3), 
-#                  ylim = c(-3, 3),
-#                  xlab="x", ylab="dx/dt",
-#                  main=paste0("Oscillator model"),
-#                  cex.main=2,
-#                  parameters = param, 
-#                  points = 15, add = FALSE,
-# col="blue",
-# arrow.type="proportional",
-# arrow.head=.05)  
-#IC <- matrix(c(-2, -2), ncol = 2, byrow = TRUE)  #Initial conditions
-# phaseR::trajectory(Osc, y0 = IC, parameters = param,tlim=c(0,10))
-}
 \references{
 Grayling, Michael J. (2014). phaseR: An R Package for Phase Plane Analysis of Autonomous
 ODE Systems. The R Journal, 6(2), 43-51. DOI: 10.32614/RJ-2014-023. Available at

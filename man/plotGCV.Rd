@@ -37,10 +37,6 @@ A function to evaluate the generalized cross-validation (GCV) values
 associated with derivative estimates via Bsplines at a range of specified 
 smoothing parameter (lambda) values
 }
-\examples{
-#outMatrix = plotGCV(theTimes,norder,roughPenaltyMax,out2,lambdaLow, 
-#lambdaHi,lambdaBy,isPlot)
-}
 \references{
 Chow, S-M. (2019). Practical Tools and Guidelines for Exploring and Fitting Linear 
 and Nonlinear Dynamical Systems Models. Multivariate Behavioral Research. https://www.nihms.nih.gov/pmc/articlerender.fcgi?artid=1520409

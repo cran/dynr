@@ -21,7 +21,8 @@ Extract the number of observations for a dynrModel object
 We return the total number of rows of data, adding up the number of time points for each person. For some purposes, you may want the mean number of observations per person or the number of people instead.  These are not currently supported via \code{nobs}.
 }
 \examples{
-# Create a minimal cooked model called 'model'
+# Create a minimal uncooked model called 'model'
+# That is, without esimating parameters
 require(dynr)
 
 meas <- prep.measurement(

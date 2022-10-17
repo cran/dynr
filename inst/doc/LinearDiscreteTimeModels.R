@@ -85,7 +85,7 @@
 
 
 ###################################################
-### code chunk number 9: LinearDiscreteTimeModels.Rnw:274-288 (eval = FALSE)
+### code chunk number 9: LinearDiscreteTimeModels.Rnw:274-287 (eval = FALSE)
 ###################################################
 ## #---- Create model  ----
 ## 
@@ -95,8 +95,7 @@
 ##   noise = recNoise,
 ##   initial = recIni,
 ##   regimes = recReg,
-##   data = EMGdata,
-##   outfile = "RSLinearDiscrete.c")
+##   data = EMGdata)
 ## 
 ## #---- Create model and cook it all up  ----
 ## 
@@ -104,20 +103,20 @@
 
 
 ###################################################
-### code chunk number 10: LinearDiscreteTimeModels.Rnw:294-296 (eval = FALSE)
+### code chunk number 10: LinearDiscreteTimeModels.Rnw:293-295 (eval = FALSE)
 ###################################################
 ## #---- Serve it! ----
 ## summary(yum)
 
 
 ###################################################
-### code chunk number 11: LinearDiscreteTimeModels.Rnw:307-308 (eval = FALSE)
+### code chunk number 11: LinearDiscreteTimeModels.Rnw:306-307 (eval = FALSE)
 ###################################################
 ## plot(yum, dynrModel = rsmod, style = 1, textsize = 5)
 
 
 ###################################################
-### code chunk number 12: LinearDiscreteTimeModels.Rnw:311-326 (eval = FALSE)
+### code chunk number 12: LinearDiscreteTimeModels.Rnw:310-325 (eval = FALSE)
 ###################################################
 ## #pdf('./Figures/plotRSGG.pdf', height=7, width=12)
 ## dynr.ggplot(yum, dynrModel = rsmod, style = 1,
@@ -137,7 +136,7 @@
 
 
 ###################################################
-### code chunk number 13: LinearDiscreteTimeModels.Rnw:331-340 (eval = FALSE)
+### code chunk number 13: LinearDiscreteTimeModels.Rnw:330-339 (eval = FALSE)
 ###################################################
 ## plotFormula(dynrModel = rsmod, ParameterAs = names(rsmod),
 ##   printDyn = TRUE, printMeas = TRUE) +
@@ -151,7 +150,7 @@
 
 
 ###################################################
-### code chunk number 14: LinearDiscreteTimeModels.Rnw:354-358 (eval = FALSE)
+### code chunk number 14: LinearDiscreteTimeModels.Rnw:353-357 (eval = FALSE)
 ###################################################
 ## printex(rsmod,
 ##   ParameterAs = names(rsmod),
@@ -160,7 +159,7 @@
 
 
 ###################################################
-### code chunk number 15: LinearDiscreteTimeModels.Rnw:361-363 (eval = FALSE)
+### code chunk number 15: LinearDiscreteTimeModels.Rnw:360-362 (eval = FALSE)
 ###################################################
 ## tools::texi2pdf("RSLinearDiscreteYang.tex")
 ## system(paste(getOption("pdfviewer"), "RSLinearDiscreteYang.pdf"))

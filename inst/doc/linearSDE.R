@@ -38,9 +38,9 @@ model <- dynr.model(dynamics=dynamics, measurement=meas, noise=ecov, initial=ini
 #  tools::texi2pdf("LinearSDE.tex")
 #  system(paste(getOption("pdfviewer"), "LinearSDE.pdf"))
 
-## ----cook, results="hide"-----------------------------------------------------
-res <- dynr.cook(model, verbose=FALSE)
+## ----cook, results="hide", eval=FALSE-----------------------------------------
+#  res <- dynr.cook(model, verbose=FALSE)
 
-## ----serve--------------------------------------------------------------------
-summary(res)
+## ----serve, eval=FALSE--------------------------------------------------------
+#  summary(res)
 

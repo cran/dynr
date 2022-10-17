@@ -65,12 +65,14 @@ data <- dynr.data(Oscillator, id="id", time="times", observed="y1")
 model <- dynr.model(dynamics=dynamics, measurement=meas,
 	noise=ecov, initial=initial, data=data)
 
+\dontrun{
 cook <- dynr.cook(model,
 	verbose=FALSE, optimization_flag=FALSE, hessian_flag=FALSE)
 
 # Now get the confidence intervals
 # But note that they are nonsense because we set hessian_flag=FALSE !!!!
 confint(cook)
+}
 }
 \references{
 Pritikin, J.N., Rappaport, L.M. & Neale, M.C.  (In Press). Likelihood-Based Confidence Intervals for a Parameter With an Upper or Lower Bound.  Structural Equation Modeling.  DOI: 10.1080/10705511.2016.1275969

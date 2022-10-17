@@ -67,7 +67,7 @@ The two functions \code{dynr.ggplot()} and \code{autoplot()} as identical aliase
 }
 \examples{
 # The following code is part of a demo example in dynr
-\donttest{
+\dontrun{
 demo(RSLinearDiscreteYang, package='dynr')
 p <- dynr.ggplot(yum, dynrModel = rsmod, style = 1,
  	names.regime = c("Deactivated", "Activated"),

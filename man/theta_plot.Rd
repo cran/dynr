@@ -36,12 +36,6 @@ the vertical axis, and values of the moderator on the horizontal axis.
 \description{
 A function to plot simple slopes and region of significance.
 }
-\examples{
-# g = lm(y~x1:x2,data=data) 
-# theta_plot(g, predictor = "x1", moderator = "x2", 
-#           alpha = .05, jn = T, title0=" ",
-#           predictorLab = "x1", moderatorLab = "x2")
-}
 \references{
 Adapted from functions written by Marco Bachl to perform the Johnson-Neyman test 
 and produce a plot of simple slopes and region of significance available at:

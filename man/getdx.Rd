@@ -31,9 +31,26 @@ A wrapper function to call functions in the fda package to obtain
 smoothed estimated derivatives at a specified order
 }
 \examples{
-#x = getdx(theTimes,norder,roughPenaltyMax,sp,out2,0)[[1]] #Smoothed level
-#dx = getdx(theTimes,norder,roughPenaltyMax,sp,out2,1)[[1]] #Smoothed 1st derivs
-#d2x = getdx(theTimes,norder,roughPenaltyMax,sp,out2,2)[[1]] #Smoothed 2nd derivs
+data("LinearOsc")
+# Number of subjects is 10
+numP <- length(unique(LinearOsc$ID))
+# Number of time points is 100
+numT <- max(table(LinearOsc$ID))
+out2 <- matrix(LinearOsc$x, ncol=numP, byrow=FALSE)
+theTimes <- LinearOsc$theTimes[1:numT]
+# Order of Bsplines - usually 2 higher than roughPenaltyMax
+norder <- 6
+# Penalization order
+roughPenaltyMax <- 4 
+# Pick lambda value that gives the low GCV
+# Could/should use plotGCV instead
+sp <- 1/2
+# Smoothed level
+x <- getdx(theTimes, norder, roughPenaltyMax, sp, out2, 0)[[1]]
+# Smoothed 1st derivs
+dx <- getdx(theTimes, norder, roughPenaltyMax, sp, out2, 1)[[1]]
+# Smoothed 2nd derivs
+d2x = getdx(theTimes, norder, roughPenaltyMax, sp, out2, 2)[[1]]
 }
 \references{
 Chow, S-M. (2019). Practical Tools and Guidelines for Exploring and Fitting Linear 

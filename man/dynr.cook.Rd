@@ -108,9 +108,11 @@ data <- dynr.data(Oscillator, id="id", time="times", observed="y1")
 model <- dynr.model(dynamics=dynamics, measurement=meas,
 	noise=ecov, initial=initial, data=data)
 
+\dontrun{
 # Now cook the model!
 cook <- dynr.cook(model,
 	verbose=FALSE, optimization_flag=FALSE, hessian_flag=FALSE)
+}
 }
 \seealso{
 \code{\link{autoplot}}, \code{\link{coef}}, \code{\link{confint}},

@@ -58,11 +58,13 @@ data <- dynr.data(Oscillator, id="id", time="times", observed="y1")
 model <- dynr.model(dynamics=dynamics, measurement=meas,
 	noise=ecov, initial=initial, data=data)
 
+\dontrun{
 cook <- dynr.cook(model,
 	verbose=FALSE, optimization_flag=FALSE, hessian_flag=FALSE)
 
 # Now get the log likelihood!
 logLik(cook)
+}
 }
 \seealso{
 Other S3 methods \code{\link{coef.dynrCook}}

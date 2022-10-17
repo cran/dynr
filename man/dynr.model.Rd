@@ -56,7 +56,8 @@ There are several available methods for \code{dynrModel} objects.
 }
 }
 \examples{
-# Create a minimal cooked model called 'model'
+# Create a minimal model called 'model'
+# without 'cooking' (i.e., estimating parameters)
 require(dynr)
 
 meas <- prep.measurement(

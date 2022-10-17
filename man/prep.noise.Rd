@@ -4,7 +4,7 @@
 \alias{prep.noise}
 \title{Recipe function for specifying the measurement error and process noise covariance structures}
 \usage{
-prep.noise(values.latent, params.latent, values.observed, params.observed)
+prep.noise(values.latent, params.latent, values.observed, params.observed, ...)
 }
 \arguments{
 \item{values.latent}{a positive definite matrix or a list of positive definite matrices of the starting or fixed values of the process noise covariance structure(s) in one or more regimes. If only one matrix is specified for a regime-switching dynamic model, the process noise covariance structure stays the same across regimes. To ensure the matrix is positive definite in estimation, we apply LDL transformation to the matrix. Values are hence automatically adjusted for this purpose.}
@@ -14,6 +14,8 @@ prep.noise(values.latent, params.latent, values.observed, params.observed)
 \item{values.observed}{a positive definite matrix or a list of positive definite matrices of the starting or fixed values of the measurement error covariance structure(s) in one or more regimes. If only one matrix is specified for a regime-switching measurement model, the measurement noise covariance structure stays the same across regimes. To ensure the matrix is positive definite in estimation, we apply LDL transformation to the matrix. Values are hence automatically adjusted for this purpose.}
 
 \item{params.observed}{a matrix or list of matrices of the parameter names that appear in the measurement error covariance(s) in one or more regimes. If an element is 0 or "fixed", the corresponding element is fixed at the value specified in the values matrix; Otherwise, the corresponding element is to be estimated with the starting value specified in the values matrix. If only one matrix is specified for a regime-switching dynamic model, the process noise structure stays the same across regimes. If a list is specified, any two sets of the parameter names as in two matrices should be either the same or totally different to ensure proper parameter estimation.  See Details.}
+
+\item{...}{Further named arguments.  Currently we only accept 'covariates' and 'var.formula'.}
 }
 \value{
 Object of class 'dynrNoise'

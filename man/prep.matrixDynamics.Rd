@@ -2,7 +2,7 @@
 % Please edit documentation in R/dynrRecipe.R
 \name{prep.matrixDynamics}
 \alias{prep.matrixDynamics}
-\title{Recipe function for creating Linear Dynamcis using matrices}
+\title{Recipe function for creating Linear Dynamics using matrices}
 \usage{
 prep.matrixDynamics(params.dyn = NULL, values.dyn, params.exo = NULL,
   values.exo = NULL, params.int = NULL, values.int = NULL, covariates,
@@ -31,7 +31,7 @@ specified linear dynamic model}
 Object of class 'dynrDynamicsMatrix'
 }
 \description{
-Recipe function for creating Linear Dynamcis using matrices
+Recipe function for creating Linear Dynamics using matrices
 }
 \details{
 A recipe function for specifying the deterministic portion of a set of linear dynamic functions as:
