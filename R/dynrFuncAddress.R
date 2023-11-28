@@ -16,7 +16,7 @@
 		#-------Check the input arguments----------------------------
 		code <- readLines(infile)
 		# ---- Write and compile the code ----
-		
+		print("Get ready!!!!")
 		#filename<- basename(tempfile())
 		CompileCode(code, language, verbose, libLFile)
 		#---- SET A FINALIZER TO PERFORM CLEANUP: register an R function to be called upon garbage collection of object or at the end of an R session---  
@@ -101,15 +101,19 @@ CompileCode <- function(code, language, verbose, libLFile) {
 	errfile <- paste( basename(libCFile), ".err.txt", sep = "" )
 	cmd <- paste(R.home(component="bin"), "/R CMD SHLIB ", basename(libCFile), " ", gsl_libs, " ", " 2> ", errfile, sep="")
 	if (verbose) cat("Compilation argument:\n", cmd, "\n")
-	compiled <- system2(paste0(R.home(component="bin"), "/R"), args=c("CMD", "SHLIB", basename(libCFile)), stderr=errfile, stdout=verbose)
+	compiled <- system2(paste0(R.home(component="bin"), "/R"), 
+	                    args=c("CMD", "SHLIB", basename(libCFile)), 
+	                    stderr=errfile, stdout=verbose)
 	errmsg <- readLines(errfile)
 	unlink(errfile)
-	if(length(errmsg) > 0){cat("May I present to you your error messages?\n")}
+	#if(length(errmsg) > 0){cat("May I present to you your error messages?\n")}
 	writeLines(errmsg)
 	setwd(wd)
 	
 	#### Error Messages
-	if ( !file.exists(libLFile) | length(errmsg > 0) ) {
+	#cat("I got here!!!")
+	errmsg = errmsg[!grep("warning",errmsg)]
+	if ( !file.exists(libLFile) | length(errmsg) > 0 ) {
 		cat("\nERROR(s) during compilation: source code errors or compiler configuration errors!\n")
 		cat("\nProgram source:\n")
 		codeWithLineNums <- paste(sprintf(fmt="%3d: ", 1:length(code)), code, sep="")
@@ -158,10 +162,16 @@ dynr.config <- function(verbose=FALSE){
 	noGSLmsg <- "LIB_GSL variable not found."
 	if ( .Platform$OS.type == "windows" ) {
 		path <- Sys.getenv("PATH")
+		path <- normalizePath(strsplit(path, split=';', fixed=TRUE)[[1]])
 		path <- gsub("\\\\", "/", path)
-		findR <- grep(R.home(component="bin"), path)
+		path <- paste(path, sep='', collapse=';')
+		rpath <- normalizePath(R.home(component="bin"))
+		rpath <- gsub("\\\\", "/", rpath)
+		findR <- grep(rpath, path)
 		if(length(findR) < 1 || findR != 1){
-			stop(paste0(noRmsg, genmsg))
+			# Only warning
+			# R does NOT need to be on the path for windows unless you're a developer
+			warning(paste0(noRmsg, '\nThis is only needed for developers.\nIf that is not you, then happily ignore this warning.\n'))
 		}
 		if(grep('rtools', path, ignore.case=TRUE) != 1){
 			stop(paste0(noRtoolsmsg, genmsg))
@@ -185,11 +195,17 @@ dynr.config <- function(verbose=FALSE){
 		}
 		
 		## Unix gsl flags
-		gsl_cflags <- system( "gsl-config --cflags" , intern = TRUE )
-		gsl_libs   <- system( "gsl-config --libs"   , intern = TRUE )
-		if(0){ # TODO fill with something!
-			stop(paste0(noGSLmsg, genmsg))
+		# Wrap system command in try
+		# If try error, say can't find gsl
+		gsl_cflags <- try(system( "gsl-config --cflags", intern=TRUE), silent=TRUE)
+		if(inherits(gsl_cflags, 'try-error')){
+			stop("'gsl-config --cflags' failed.  You probably need to install GSL and/or add it to your path.")
 		}
+		gsl_libs   <- try(system( "gsl-config --libs", intern=TRUE), silent=TRUE)
+		if(inherits(gsl_cflags, 'try-error')){
+			stop("'gsl-config --libs' failed.  You probably need to install GSL  and/or add it to your path.")
+		}
+		# Sys.setenv(PATH=paste0(Sys.getenv("PATH"),":","/opt/local/bin"))
 	}
 	if(verbose){
 		message("Configuration check complete.  Ready to rock and roll.")

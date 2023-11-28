@@ -1,5 +1,5 @@
 Package: dynr
-Date: 2022-10-16
+Date: 2023-11-27
 Title: Dynamic Models with Regime-Switching
 Authors@R: c(person("Lu", "Ou", role="aut"),
     person(c("Michael", "D."), "Hunter", role=c("aut", "cre"), email="mike.dynr@gmail.com", comment=c(ORCID = "0000-0002-3651-6709")),
@@ -29,13 +29,13 @@ Description: Intensive longitudinal data have become increasingly prevalent in
     or continuous but interspersed with periods of discontinuities (i.e.,
     showing regime switches). The package 'dynr' (Dynamic Modeling in R) is an
     R package that implements a set of computationally efficient algorithms for
-    handling a broad class of linear and nonlinear discrete- and continuous-
-    time models with regime-switching properties under the constraint of
-    linear Gaussian measurement functions. The discrete-time models can
-    generally take on the form of a state-space or difference equation model.
-    The continuous-time models are generally expressed as a set of ordinary
-    or stochastic differential equations. All estimation and computations
-    are performed in C, but users are provided with the option to specify the
+    handling a broad class of linear and nonlinear discrete- and continuous-time
+    models with regime-switching properties under the constraint of linear
+    Gaussian measurement functions. The discrete-time models can generally
+    take on the form of a state-space or difference equation model. The
+    continuous-time models are generally expressed as a set of ordinary or
+    stochastic differential equations. All estimation and computations are
+    performed in C, but users are provided with the option to specify the
     model of interest via a set of simple and easy-to-learn model specification
     functions in R. Model fitting can be performed using single-subject time
     series data or multiple-subject longitudinal data. Ou, Hunter, & Chow
@@ -51,10 +51,10 @@ Collate: 'dynrData.R' 'dynrRecipe.R' 'dynrModelInternal.R'
         'dynrMi.R' 'dynrTaste.R' 'dynrVersion.R' 'dataDoc.R'
         'dynrGetDerivs.R' 'dynrPredict.R'
 RdMacros: Rdpack
-Version: 0.1.16-91
+Version: 0.1.16-105
 Biarch: TRUE
 RoxygenNote: 5.0.1
-Packaged: 2022-10-16 18:14:37 UTC; mhunter
+Packaged: 2023-11-27 23:29:18 UTC; mhunter
 Author: Lu Ou [aut],
   Michael D. Hunter [aut, cre] (<https://orcid.org/0000-0002-3651-6709>),
   Sy-Miin Chow [aut] (<https://orcid.org/0000-0003-1938-027X>),
@@ -69,4 +69,4 @@ Author: Lu Ou [aut],
   Benoit Scherrer [cph],
   Dieter Kraft [cph]
 Repository: CRAN
-Date/Publication: 2022-10-17 07:02:35 UTC
+Date/Publication: 2023-11-28 05:20:05 UTC
