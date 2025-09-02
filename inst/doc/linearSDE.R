@@ -33,14 +33,14 @@ initial <- prep.initial(
 model <- dynr.model(dynamics=dynamics, measurement=meas, noise=ecov, initial=initial, data=data, outfile="LinearSDE.c")
 
 ## ----tex, results="hide",eval=FALSE-------------------------------------------
-#  printex(model,ParameterAs=model$param.names,show=FALSE,printInit=TRUE,
-#          outFile="LinearSDE.tex")
-#  tools::texi2pdf("LinearSDE.tex")
-#  system(paste(getOption("pdfviewer"), "LinearSDE.pdf"))
+# printex(model,ParameterAs=model$param.names,show=FALSE,printInit=TRUE,
+#         outFile="LinearSDE.tex")
+# tools::texi2pdf("LinearSDE.tex")
+# system(paste(getOption("pdfviewer"), "LinearSDE.pdf"))
 
 ## ----cook, results="hide", eval=FALSE-----------------------------------------
-#  res <- dynr.cook(model, verbose=FALSE)
+# res <- dynr.cook(model, verbose=FALSE)
 
 ## ----serve, eval=FALSE--------------------------------------------------------
-#  summary(res)
+# summary(res)
 

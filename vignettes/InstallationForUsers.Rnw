@@ -37,14 +37,14 @@ Each of these steps is detailed below.  We acknowledge that this additional setu
 \begin{enumerate}
 \item If you already have R-tools on your machine, make sure the version of R-tools matches with your R version. R-tools versions newer than 3.0 should work fine with \texttt{dynr}.
 \item Install R-tools through \url{https://cran.r-project.org/bin/windows/Rtools/}. Install the latest {\em release} version of Rtools, not the {\em devel} version. 
-\item The following instructions are based on rtools42.
-\item Click ``Rtools42 installer'', then click ``rtools42-5355-5357.exe`` in the new webpage. You may be asked if you want to save or run a file ``rtools42-5355-5357.exe``. Choose ``Save'' and save the file on the Desktop. Then double-click on the icon for the file to run it.
+\item The following instructions are based on rtools45.
+\item Click ``Rtools45 installer'', then click ``rtools45-6608-6492.exe`` in the new webpage. You may be asked if you want to save or run a file ``rtools45-6608-6492.exe``. Choose ``Save'' and save the file on the Desktop. Then double-click on the icon for the file to run it.
 \item If you are asked what language to install, choose English.
-\item The next page says ``Select Destination Location`` at the top. By default, it will suggest to install R in ``C:\textbackslash rtools42'' on your computer. You may also install R-tools in  {\em any other directory where there are {\bf no spaces} in the words describing the directory}. Click ``Next'' at the bottom of the R tools Setup wizard window.
+\item The next page says ``Select Destination Location`` at the top. By default, it will suggest to install R in ``C:\textbackslash rtools45'' on your computer. You may also install R-tools in  {\em any other directory where there are {\bf no spaces} in the words describing the directory}. Click ``Next'' at the bottom of the R tools Setup wizard window.
 \item The next page says ``Select additional tasks`` at the top. Check the box to edit the system PATH. Click ``Next'' again.
 \item Add the directories for R and Rtools to your {\em system} PATH.  Examples are shown below.  Place these directories at or near the top of your list for the {\em system} PATH variable. The order of the directories should be the same as shown in the example below.\\
-\texttt{C:\textbackslash rtools42\textbackslash usr\textbackslash bin\\
- C:\textbackslash R\textbackslash R-4.2.1\textbackslash bin\textbackslash x64;}\\ % TODO check if x64 is needed
+\texttt{C:\textbackslash rtools45\textbackslash usr\textbackslash bin\\
+ C:\textbackslash R\textbackslash R-4.5.1\textbackslash bin\textbackslash x64;}\\ % TODO check if x64 is needed
 You may want to first go to the directory where Rtools and R are installed and check that you know the correct pathway.  
 \item The next page says ``Ready to install'' at the top. Click ``install''.
 \item Rtools should now be installed. This will take about a minute. Click ``Finish''.
@@ -57,11 +57,11 @@ You may want to first go to the directory where Rtools and R are installed and c
 \begin{enumerate}
 \item If you already have GSL libraries installed on your machine, you may skip this step and go to Section \ref{sec:libgsl}.  
 \item To install GSL libraries, we advocate using Rtools.  The new way to get GSL is through Rtools.
-\item  Go to the directory on your computer for Rtools (usually \texttt{C:/rtools42} or something similar).  There’s a file called \texttt{msys2.exe}.  Run it.  It should open a shell command prompt.  Type\\
+\item  Go to the directory on your computer for Rtools (usually \texttt{C:/rtools45} or something similar).  There’s a file called \texttt{msys2.exe}.  Run it.  It should open a shell command prompt.  Type\\
 \\
-\texttt{pacman -Sy mingw-w64-x86\_64-gsl}\\
+\texttt{pacman -Sy mingw-w64-ucrt-x86\_64-gsl}\\
 \\
-in that command prompt.  This installs GSL.  Check by going to \texttt{C:/rtools42/mingw64/lib}, and find a file called \texttt{libgsl.a}.  If it’s there, then it installed GSL.
+in that command prompt.  This installs GSL.  Check by going to \texttt{C:/rtools45/ucrt64/lib}, and find a file called \texttt{libgsl.a}.  If it’s there, then it installed GSL.
 \item If it's not there, then \texttt{pacman} probably did not install GSL correctly.  Search online for ``msys2'' and ``GSL'' to find updated commands for installing GSL with msys2.\end{enumerate}
 
 
@@ -71,9 +71,9 @@ in that command prompt.  This installs GSL.  Check by going to \texttt{C:/rtools
  \item Open - Control Panel\textbackslash System and Security\textbackslash System
  \item Click on Advanced system settings and then click on ``Environment Variables''
  \item Add a new {\em system} variable by clicking on New.  Note that this should be a {\em System} environment variable, not a {\em User} environment variable.
- \item Name the new variable as LIB\_GSL and set the variable value to the 
- directory one back from \texttt{libgsl.a}.  This file is usually in \texttt{C:/rtools42/mingw64/lib}, so you'll set \texttt{LIB\_GSL} to \texttt{C:/rtools42/mingw64}.
- \item Note that the direction of these slashes is important. This slash / will work but {\em not} this one \textbackslash.  The \texttt{LIB\_GSL} path should be \texttt{C:/rtools42/mingw64} and not \texttt{C:\textbackslash rtools42\textbackslash mingw64}.
+ \item Name the new variable as LIB\_GSL and set the variable value to the
+ directory one back from \texttt{libgsl.a}.  This file is usually in \texttt{C:/rtools45/ucrt64/lib}, so you'll set \texttt{LIB\_GSL} to \texttt{C:/rtools45/ucrt64}.
+ \item Note that the direction of these slashes is important. This slash / will work but {\em not} this one \textbackslash.  The \texttt{LIB\_GSL} path should be \texttt{C:/rtools45/ucrt64} and not \texttt{C:\textbackslash rtools45\textbackslash ucrt64}.
 \end{enumerate}
 
 
@@ -88,8 +88,8 @@ in that command prompt.  This installs GSL.  Check by going to \texttt{C:/rtools
  \item Click on Advanced system settings
  \item Check to make sure that your path variable specified during Rtools installation is specified correctly. In Windows 10 do so by clicking on ``Environment Variables'' and then in the ``System variables'' panel click on ``Path'' and then ``Edit''. Check that the following paths have been specified at the front of your {\em system} path variable or just move them all to way up to the top in the following order.
 \\
-\texttt{C:\textbackslash rtools42\textbackslash usr\textbackslash bin\\
- C:\textbackslash R\textbackslash R-4.2.1\textbackslash bin\textbackslash x64\\
+\texttt{C:\textbackslash rtools45\textbackslash usr\textbackslash bin\\
+ C:\textbackslash R\textbackslash R-4.5.1\textbackslash bin\textbackslash x64\\
  C:\textbackslash cygwin\textbackslash bin (see section \ref{sec:cygwin})
  }
  \item The order of the directories on the PATH variable is important.  CMD looks for programs starting at the top of the directories in PATH.  Make sure you have Rtoos, then R, then cygwin.
@@ -101,7 +101,7 @@ in that command prompt.  This installs GSL.  Check by going to \texttt{C:/rtools
 \subsection{\Large Wrapping up the Installation Procedure for Windows}
 \label{wrapup}
 \begin{enumerate}
-\item Open RGui, Rstudio or whatever editor you use to run R. Please type the following code to check whether the gsl commands can be found correctly:\\ \texttt{shell("echo \%LIB\_GSL\%")}\\ If this returns something like \texttt{C:/rtools42/mingw64}, then everything worked fine.
+\item Open RGui, Rstudio or whatever editor you use to run R. Please type the following code to check whether the gsl commands can be found correctly:\\ \texttt{shell("echo \%LIB\_GSL\%")}\\ If this returns something like \texttt{C:/rtools45/ucrt64}, then everything worked fine.
  \item If that command returns something like ``\%LIB\_GSL\%'', then something might be wrong with the GSL installation (Return to Section \ref{sec:gsl}) or GSL path (Return to Section \ref{sec:libgsl}).
  \item If the command worked fine, follow the steps in section \ref{sec:cran} to finish the installation process in R.
 \end{enumerate}

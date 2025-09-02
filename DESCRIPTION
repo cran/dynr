@@ -1,5 +1,5 @@
 Package: dynr
-Date: 2023-11-27
+Date: 2025-09-02
 Title: Dynamic Models with Regime-Switching
 Authors@R: c(person("Lu", "Ou", role="aut"),
     person(c("Michael", "D."), "Hunter", role=c("aut", "cre"), email="mike.dynr@gmail.com", comment=c(ORCID = "0000-0002-3651-6709")),
@@ -51,13 +51,14 @@ Collate: 'dynrData.R' 'dynrRecipe.R' 'dynrModelInternal.R'
         'dynrMi.R' 'dynrTaste.R' 'dynrVersion.R' 'dataDoc.R'
         'dynrGetDerivs.R' 'dynrPredict.R'
 RdMacros: Rdpack
-Version: 0.1.16-105
+Version: 0.1.16-114
 Biarch: TRUE
 RoxygenNote: 5.0.1
-Packaged: 2023-11-27 23:29:18 UTC; mhunter
+Packaged: 2025-09-02 14:41:43 UTC; mhunter
 Author: Lu Ou [aut],
-  Michael D. Hunter [aut, cre] (<https://orcid.org/0000-0002-3651-6709>),
-  Sy-Miin Chow [aut] (<https://orcid.org/0000-0003-1938-027X>),
+  Michael D. Hunter [aut, cre] (ORCID:
+    <https://orcid.org/0000-0002-3651-6709>),
+  Sy-Miin Chow [aut] (ORCID: <https://orcid.org/0000-0003-1938-027X>),
   Linying Ji [aut],
   Meng Chen [aut],
   Hui-Ju Hung [aut],
@@ -69,4 +70,4 @@ Author: Lu Ou [aut],
   Benoit Scherrer [cph],
   Dieter Kraft [cph]
 Repository: CRAN
-Date/Publication: 2023-11-28 05:20:05 UTC
+Date/Publication: 2025-09-02 16:00:08 UTC

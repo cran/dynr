@@ -115,7 +115,7 @@ cook <- dynr.cook(model,
 }
 }
 \seealso{
-\code{\link{autoplot}}, \code{\link{coef}}, \code{\link{confint}},
+\code{\link[ggplot2]{autoplot}}, \code{\link{coef}}, \code{\link{confint}},
 \code{\link{deviance}}, \code{\link{initialize}}, \code{\link{logLik}},
 \code{\link{names}}, \code{\link{nobs}}, \code{\link{plot}}, \code{\link{print}},
 \code{\link{show}}, \code{\link{summary}}, \code{\link{vcov}}.
